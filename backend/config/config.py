@@ -6,7 +6,11 @@ import models as models
 
 class Settings(BaseSettings):
 
-    DATABASE_URL: Optional[str] = "localhost:27017"
+    DATABASE_URL: Optional[str] = None
+
+    class Config:
+        env_file = ".env.dev"
+        from_attributes = True
 
 async def init_database():
     client = AsyncIOMotorClient(Settings().DATABASE_URL)
