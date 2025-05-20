@@ -7,6 +7,9 @@ import models as models
 class Settings(BaseSettings):
 
     DATABASE_URL: Optional[str] = None
+    AUTH_URL: Optional[str] = None
+    AUTH_KEY: Optional[str] = None
+    DSS_URL: Optional[str] = None
 
     class Config:
         env_file = ".env.dev"
@@ -18,3 +21,6 @@ async def init_database():
             database=client.get_default_database(),
             document_models=models.__all__
     )
+
+async def init_auth():
+    pass
