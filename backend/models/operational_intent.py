@@ -2,11 +2,8 @@ from beanie import Document
 from uuid import UUID
 from datetime import datetime
 from pydantic import BaseModel
+from schemas.operational_intent import TimePoint
 from typing import Any
-
-class TimePoint(BaseModel):
-    value: datetime
-    format: str
 
 class OperationalIntent(Document):
     entity_id: UUID

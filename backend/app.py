@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from routes.test import router as TestRouter
-from routes.operational_intent import router as OperationalIntentRouter
+from routes.operational_intent import router as OperationalIntentsRouter
 from config.config import init_database
 from contextlib import asynccontextmanager
 
@@ -23,4 +23,5 @@ app = FastAPI(
 )
 
 app.include_router(TestRouter, tags=["Test"], prefix="/test")
-app.include_router(OperationalIntentRouter, tags=["Operational Intents"], prefix="/uss/v1/operational_intents")
+app.include_router(OperationalIntentsRouter, tags=["Operational Intents"], prefix="/uss/v1/operational_intents")
+
