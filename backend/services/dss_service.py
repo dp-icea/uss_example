@@ -43,6 +43,21 @@ class DSSService:
     async def close(self):
         await self._client.aclose()
 
+    async def _authenticated_request(self, method: str, scope: Scope, **kwargs) -> httpx.Response:
+        auth = AuthService.get_instance()
+        token = await auth.get_dss_token(scope=scope)
+        headers = kwargs.pop("headers", {})
+        headers["Authorization"] = f"Bearer {token}"
+
+        request_func = getattr(self._client, method.lower())
+        response = await request_func(headers=headers, **kwargs)
+        if response.status_code == 403:
+            await auth.refresh_dss_token(scope=scope)
+            token = await auth.get_dss_token(scope=scope)
+            headers["Authorization"] = f"Bearer {token}"
+            response = await request_func(headers=headers, **kwargs)
+        return response
+
     # TODO: I am almost solving this (hang on)
     async def _authenticated_post(self, url: str, body: dict, scope: Scope) -> httpx.Response:
         auth = AuthService.get_instance()
@@ -78,10 +93,11 @@ class DSSService:
             "area_of_interest": area_of_interest.model_dump(mode="json"),
         }
 
-        response = await self._authenticated_post(
-            "/constraint_references/query",
-            body=body,
+        response = await self._authenticated_request(
+            method="post",
             scope=Scope.CONSTRAINT_PROCESSING,
+            url="/constraint_references/query",
+            json=body,
         )
 
         if response.status_code != 200: 
@@ -102,10 +118,11 @@ class DSSService:
             "area_of_interest": area_of_interest.model_dump(mode="json"),
         }
 
-        response = await self._authenticated_post(
-            "/operational_intent_references/query",
-            body=body,
+        response = await self._authenticated_request(
+            method="post",
             scope=Scope.STRATEGIC_COORDINATION,
+            url="/operational_intent_references/query",
+            json=body,
         )
 
         if response.status_code != 200: 
@@ -141,15 +158,12 @@ class DSSService:
             "flight_type": "VLOS",
         }
 
-        print("Request")
-        pprint(body)
-
-        response = await self._authenticated_put(
-            f"/operational_intent_references/{entity_id}",
-            body=body,
+        response = await self._authenticated_request(
+            method="put",
             scope=Scope.STRATEGIC_COORDINATION,
+            url=f"/operational_intent_references/{entity_id}",
+            json=body,
         )
-
 
         print("Response")
         pprint(response.json())

@@ -5,6 +5,6 @@ class Response(BaseModel):
     """
     Response class to handle the response from the API.
     """
-    status: int
+    status: Optional[int] = None
     message: Optional[str] = None
     data: Optional[Any] = None

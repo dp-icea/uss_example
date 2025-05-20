@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Body, HTTPException
 
-from uuid import UUID
+from uuid import UUID, uuid4
 from models.operational_intent import OperationalIntent
 from services.auth_service import AuthService
 from services.dss_service import DSSService
@@ -15,17 +15,19 @@ router = APIRouter()
 #   but I dont understand the area so far
 # TODO: I want to remove this entity_id as a parameter (Solve this later)
 @router.put(
-    "/{entity_id}",
+    "/",
     response_description="Create a new operational intent",
-    response_model=Response
+    response_model=Response,
+    status_code=201,
 )
 async def create_operational_intent(
-    entity_id: UUID,
     area_of_interest: CreateOperationalIntentRequest = Body(...),
 ):
     """
     Create a new operational intent
     """
+
+    entity_id = uuid4()
 
     if await operational_intent_controller.entity_id_exists(entity_id):
         raise HTTPException(
@@ -55,20 +57,21 @@ async def create_operational_intent(
             detail="Area of interest is not valid",
         )
 
+    # Register the operational intent reference in the DSS
     create_operation = await dss.create_operational_intent(
         entity_id=entity_id,
         area_of_interest=area_of_interest,
     )
      
     # Create the flight plan
-    # operational_intent = OperationalIntent(
-    #     entity_id=entity_id,
-    #     volume=area_of_interest.volume,
-    #     time_start=area_of_interest.time_start,
-    #     time_end=area_of_interest.time_end,
-    # )
-    #
-    # await operational_intent.create()
+    operational_intent = OperationalIntent(
+        entity_id=entity_id,
+        volume=area_of_interest.volume,
+        time_start=area_of_interest.time_start,
+        time_end=area_of_interest.time_end,
+    )
+
+    await operational_intent.create()
 
     return Response(
         status=201,
