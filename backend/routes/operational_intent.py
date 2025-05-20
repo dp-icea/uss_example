@@ -13,6 +13,7 @@ router = APIRouter()
 
 # TODO: This is provisory. I might have to change for the flight_plan api format
 #   but I dont understand the area so far
+# TODO: I want to remove this entity_id as a parameter (Solve this later)
 @router.put(
     "/{entity_id}",
     response_description="Create a new operational intent",
@@ -34,36 +35,45 @@ async def create_operational_intent(
 
     # Verify constraints
     dss = DSSService.get_instance()
-    query = await dss.query_constraint_references(area_of_interest)
-    if len(query.constraint_references) != 0:
+    query_constraints = await dss.query_constraint_references(
+        area_of_interest=area_of_interest
+    )
+    if len(query_constraints.constraint_references) != 0:
         # TODO: Send the intersection to the user later
         raise HTTPException(
             status_code=400,
             detail="Area of interest is not valid",
         )
 
+    # Verify other Operational Intents
+    query_operations = await dss.query_operational_intents(
+        area_of_interest=area_of_interest,
+    )
+    if len(query_operations.operational_intent_references) != 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Area of interest is not valid",
+        )
+
+    create_operation = await dss.create_operational_intent(
+        entity_id=entity_id,
+        area_of_interest=area_of_interest,
+    )
+     
     # Create the flight plan
     # operational_intent = OperationalIntent(
     #     entity_id=entity_id,
-    #     volume=operational_intent_request.volume,
-    #     time_start=operational_intent_request.time_start,
-    #     time_end=operational_intent_request.time_end,
+    #     volume=area_of_interest.volume,
+    #     time_start=area_of_interest.time_start,
+    #     time_end=area_of_interest.time_end,
     # )
     #
     # await operational_intent.create()
-    #
-    # return Response(
-    #     status=200,
-    #     message="Operational intent created successfully",
-    #     data=operational_intent,
-    # )
 
     return Response(
-        status=200,
-        message="Foo",
-        data={
-            "foo": "bar",
-        },
+        status=201,
+        message="Operational intent created successfully",
+        data=create_operation.model_dump(mode="json"),
     )
 
 @router.get(

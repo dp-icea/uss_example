@@ -1,4 +1,6 @@
 import httpx
+from enum import Enum
+from uuid import UUID
 from pprint import pprint
 from typing import Any
 from threading import Lock
@@ -7,6 +9,13 @@ from pydantic import BaseModel
 from config.config import Settings
 from services.auth_service import AuthService, Scope
 from schemas.constraints import ConstraintReferenceQuery
+from schemas.operational_intent_reference import OperationalIntentReferenceQuery, OperationalIntentReferenceCreate
+
+class OperationalIntentState(str, Enum):
+    """
+    Enum for the operational intent state.
+    """
+    ACCEPTED = "Accepted"
 
 class DSSService:
     _instance = None
@@ -34,9 +43,7 @@ class DSSService:
     async def close(self):
         await self._client.aclose()
 
-    # I dont like making this method
-    # I would like to make this 403 check as something like a middleware
-    # TODO: Find a solution later
+    # TODO: I am almost solving this (hang on)
     async def _authenticated_post(self, url: str, body: dict, scope: Scope) -> httpx.Response:
         auth = AuthService.get_instance()
         token = await auth.get_dss_token(scope=scope)
@@ -48,6 +55,19 @@ class DSSService:
             token = await auth.get_dss_token(scope=scope)
             headers["Authorization"] = f"Bearer {token}"
             response = await self._client.post(url, headers=headers, json=body)
+        return response
+
+    async def _authenticated_put(self, url: str, body: dict, scope: Scope) -> httpx.Response:
+        auth = AuthService.get_instance()
+        token = await auth.get_dss_token(scope=scope)
+        headers = {"Authorization": f"Bearer {token}"}
+
+        response = await self._client.put(url, headers=headers, json=body)
+        if response.status_code == 403:
+            await auth.refresh_dss_token(scope=scope)
+            token = await auth.get_dss_token(scope=scope)
+            headers["Authorization"] = f"Bearer {token}"
+            response = await self._client.put(url, headers=headers, json=body)
         return response
 
     async def query_constraint_references(self, area_of_interest: BaseModel) -> ConstraintReferenceQuery:
@@ -73,5 +93,75 @@ class DSSService:
         constraint_reference = ConstraintReferenceQuery.model_validate(response.json())
 
         return constraint_reference
+
+    async def query_operational_intents(self, area_of_interest: BaseModel) -> OperationalIntentReferenceQuery:
+        """
+        Query all operational intents from the DSS.
+        """
+        body = {
+            "area_of_interest": area_of_interest.model_dump(mode="json"),
+        }
+
+        response = await self._authenticated_post(
+            "/operational_intent_references/query",
+            body=body,
+            scope=Scope.STRATEGIC_COORDINATION,
+        )
+
+        if response.status_code != 200: 
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=f"Error querying DSS: {response.text}",
+            )
+
+        operational_intents = OperationalIntentReferenceQuery.model_validate(response.json())
+
+        return operational_intents
+
+    async def create_operational_intent(self, entity_id: UUID, area_of_interest: BaseModel) -> Any:
+
+        """
+        Create a new operational intent in the DSS.
+        """
+        body = {
+            "extents": [
+                area_of_interest.model_dump(mode="json"),
+            ],
+            # TODO: Add this when I am solving conflicts
+            "key": [],
+            "state": OperationalIntentState.ACCEPTED.value,
+            "uss_base_url": "https://localhost:8000",
+            # TODO: Add this later when supporting already created subscriptions
+            # "subscription_id": "foo"
+            "new_subscription": {
+                    "uss_base_url": "string",
+                    "notify_for_constraints": True,
+            },
+            # TODO: Add this later to support other flight types
+            "flight_type": "VLOS",
+        }
+
+        print("Request")
+        pprint(body)
+
+        response = await self._authenticated_put(
+            f"/operational_intent_references/{entity_id}",
+            body=body,
+            scope=Scope.STRATEGIC_COORDINATION,
+        )
+
+
+        print("Response")
+        pprint(response.json())
+
+        if response.status_code != 201: 
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=f"Error creating operational intent: {response.text}",
+            )
+
+        operational_intent = OperationalIntentReferenceCreate.model_validate(response.json())
+
+        return operational_intent
 
 
