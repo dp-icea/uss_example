@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Body, HTTPException
 
 from uuid import UUID, uuid4
-from models.operational_intent import OperationalIntent
+from models.operational_intent import OperationalIntentModel
 from services.auth_service import AuthService
 from services.dss_service import DSSService
-from schemas.operational_intent import CreateOperationalIntentRequest
+from schemas.operational_intent import AreaOfInterestSchema
 from schemas.response import Response
 
 import controllers.operational_intent as operational_intent_controller
@@ -12,8 +12,7 @@ import controllers.operational_intent as operational_intent_controller
 router = APIRouter()
 
 # TODO: This is provisory. I might have to change for the flight_plan api format
-#   but I dont understand the area so far
-# TODO: I want to remove this entity_id as a parameter (Solve this later)
+#   but I still dont understand how they send the area.
 @router.put(
     "/",
     response_description="Create a new operational intent",
@@ -21,19 +20,14 @@ router = APIRouter()
     status_code=201,
 )
 async def create_operational_intent(
-    area_of_interest: CreateOperationalIntentRequest = Body(...),
+    area_of_interest: AreaOfInterestSchema = Body(...),
 ):
     """
     Create a new operational intent
     """
 
+    # New entity id created to identify the operational intent
     entity_id = uuid4()
-
-    if await operational_intent_controller.entity_id_exists(entity_id):
-        raise HTTPException(
-            status_code=400,
-            detail=f"Entity ID '{entity_id}' already exists",
-        )
 
     # Verify constraints
     dss = DSSService.get_instance()
@@ -63,15 +57,15 @@ async def create_operational_intent(
         area_of_interest=area_of_interest,
     )
      
-    # Create the flight plan
-    operational_intent = OperationalIntent(
+    # Create the flight plan document
+    operation_model = OperationalIntentModel(
         entity_id=entity_id,
         volume=area_of_interest.volume,
         time_start=area_of_interest.time_start,
         time_end=area_of_interest.time_end,
     )
 
-    await operational_intent.create()
+    await operation_model.create()
 
     return Response(
         status=201,

@@ -8,8 +8,9 @@ from fastapi import HTTPException
 from pydantic import BaseModel
 from config.config import Settings
 from services.auth_service import AuthService, Scope
-from schemas.constraints import ConstraintReferenceQuery
-from schemas.operational_intent_reference import OperationalIntentReferenceQuery, OperationalIntentReferenceCreate
+from schemas.operational_intent import AreaOfInterestSchema
+from schemas.constraints import ConstraintQueryResponse
+from schemas.operational_intent_reference import OperationCreateResponse, OperationQueryResponse
 
 class OperationalIntentState(str, Enum):
     """
@@ -58,34 +59,7 @@ class DSSService:
             response = await request_func(headers=headers, **kwargs)
         return response
 
-    # TODO: I am almost solving this (hang on)
-    async def _authenticated_post(self, url: str, body: dict, scope: Scope) -> httpx.Response:
-        auth = AuthService.get_instance()
-        token = await auth.get_dss_token(scope=scope)
-        headers = {"Authorization": f"Bearer {token}"}
-
-        response = await self._client.post(url, headers=headers, json=body)
-        if response.status_code == 403:
-            await auth.refresh_dss_token(scope=scope)
-            token = await auth.get_dss_token(scope=scope)
-            headers["Authorization"] = f"Bearer {token}"
-            response = await self._client.post(url, headers=headers, json=body)
-        return response
-
-    async def _authenticated_put(self, url: str, body: dict, scope: Scope) -> httpx.Response:
-        auth = AuthService.get_instance()
-        token = await auth.get_dss_token(scope=scope)
-        headers = {"Authorization": f"Bearer {token}"}
-
-        response = await self._client.put(url, headers=headers, json=body)
-        if response.status_code == 403:
-            await auth.refresh_dss_token(scope=scope)
-            token = await auth.get_dss_token(scope=scope)
-            headers["Authorization"] = f"Bearer {token}"
-            response = await self._client.put(url, headers=headers, json=body)
-        return response
-
-    async def query_constraint_references(self, area_of_interest: BaseModel) -> ConstraintReferenceQuery:
+    async def query_constraint_references(self, area_of_interest: AreaOfInterestSchema) -> ConstraintQueryResponse:
         """
         Query all constraint references from the DSS.
         """
@@ -106,11 +80,11 @@ class DSSService:
                 detail=f"Error querying DSS: {response.text}",
             )
 
-        constraint_reference = ConstraintReferenceQuery.model_validate(response.json())
+        constraint = ConstraintQueryResponse.model_validate(response.json())
 
-        return constraint_reference
+        return constraint
 
-    async def query_operational_intents(self, area_of_interest: BaseModel) -> OperationalIntentReferenceQuery:
+    async def query_operational_intents(self, area_of_interest: BaseModel) -> OperationQueryResponse:
         """
         Query all operational intents from the DSS.
         """
@@ -131,11 +105,11 @@ class DSSService:
                 detail=f"Error querying DSS: {response.text}",
             )
 
-        operational_intents = OperationalIntentReferenceQuery.model_validate(response.json())
+        operational_intents = OperationQueryResponse.model_validate(response.json())
 
         return operational_intents
 
-    async def create_operational_intent(self, entity_id: UUID, area_of_interest: BaseModel) -> Any:
+    async def create_operational_intent(self, entity_id: UUID, area_of_interest: AreaOfInterestSchema) -> OperationCreateResponse:
 
         """
         Create a new operational intent in the DSS.
@@ -165,16 +139,13 @@ class DSSService:
             json=body,
         )
 
-        print("Response")
-        pprint(response.json())
-
         if response.status_code != 201: 
             raise HTTPException(
                 status_code=response.status_code,
                 detail=f"Error creating operational intent: {response.text}",
             )
 
-        operational_intent = OperationalIntentReferenceCreate.model_validate(response.json())
+        operational_intent = OperationCreateResponse.model_validate(response.json())
 
         return operational_intent
 

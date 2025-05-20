@@ -1,4 +1,4 @@
 from models.test import Test
-from models.operational_intent import OperationalIntent
+from models.operational_intent import OperationalIntentModel
 
-__all__ = [Test, OperationalIntent]
+__all__ = [Test, OperationalIntentModel]

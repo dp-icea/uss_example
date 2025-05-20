@@ -3,7 +3,7 @@ from uuid import UUID
 from pydantic import BaseModel, HttpUrl
 from schemas.operational_intent import TimePoint
 
-class OperationalIntentReferenceQuery(BaseModel):
+class OperationQueryResponse(BaseModel):
     operational_intent_references: List[Any]
 
 class OperationalIntentReferenceDetail(BaseModel):
@@ -19,7 +19,7 @@ class OperationalIntentReferenceDetail(BaseModel):
     uss_base_url: str
     subscription_id: UUID
 
-class OperationalIntentReferenceCreate(BaseModel):
+class OperationCreateResponse(BaseModel):
     subscribers: List[Any]
     operational_intent_reference: OperationalIntentReferenceDetail
 

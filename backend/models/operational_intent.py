@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from schemas.operational_intent import TimePoint
 from typing import Any
 
-class OperationalIntent(Document):
+class OperationalIntentModel(Document):
     entity_id: UUID
     volume: Any
     time_start: TimePoint
