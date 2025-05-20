@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from routes.test import router as TestRouter
 from routes.operational_intent import router as OperationalIntentsRouter
 from config.config import init_database
@@ -21,6 +22,18 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+@app.middleware("http")
+async def catch_exceptions_middleware(request: Request, call_next):
+    try:
+        return await call_next(request)
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "message": "Internal Server Error",
+                "data": str(e)},
+        )
 
 app.include_router(TestRouter, tags=["Test"], prefix="/test")
 app.include_router(OperationalIntentsRouter, tags=["Operational Intents"], prefix="/uss/v1/operational_intents")

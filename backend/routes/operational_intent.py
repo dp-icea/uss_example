@@ -26,16 +26,21 @@ async def create_operational_intent(
     Create a new operational intent
     """
 
-    # if await operational_intent_controller.entity_id_exists(entity_id):
-    #     raise HTTPException(
-    #         status_code=400,
-    #         detail=f"Entity ID '{entity_id}' already exists",
-    #     )
+    if await operational_intent_controller.entity_id_exists(entity_id):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Entity ID '{entity_id}' already exists",
+        )
 
-    # Get the DSS token
-    ret = await DSSService.get_instance().query_all_constraint_references(area_of_interest)
-
-    print(ret)
+    # Verify constraints
+    dss = DSSService.get_instance()
+    query = await dss.query_constraint_references(area_of_interest)
+    if len(query.constraint_references) != 0:
+        # TODO: Send the intersection to the user later
+        raise HTTPException(
+            status_code=400,
+            detail="Area of interest is not valid",
+        )
 
     # Create the flight plan
     # operational_intent = OperationalIntent(

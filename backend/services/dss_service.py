@@ -2,9 +2,11 @@ import httpx
 from pprint import pprint
 from typing import Any
 from threading import Lock
+from fastapi import HTTPException
 from pydantic import BaseModel
 from config.config import Settings
-from services.auth_service import AuthService, DSS_AUD
+from services.auth_service import AuthService, Scope
+from schemas.constraints import ConstraintReferenceQuery
 
 class DSSService:
     _instance = None
@@ -32,30 +34,44 @@ class DSSService:
     async def close(self):
         await self._client.aclose()
 
-    async def query_all_constraint_references(self, area_of_interest: BaseModel):
+    # I dont like making this method
+    # I would like to make this 403 check as something like a middleware
+    # TODO: Find a solution later
+    async def _authenticated_post(self, url: str, body: dict, scope: Scope) -> httpx.Response:
+        auth = AuthService.get_instance()
+        token = await auth.get_dss_token(scope=scope)
+        headers = {"Authorization": f"Bearer {token}"}
+
+        response = await self._client.post(url, headers=headers, json=body)
+        if response.status_code == 403:
+            await auth.refresh_dss_token(scope=scope)
+            token = await auth.get_dss_token(scope=scope)
+            headers["Authorization"] = f"Bearer {token}"
+            response = await self._client.post(url, headers=headers, json=body)
+        return response
+
+    async def query_constraint_references(self, area_of_interest: BaseModel) -> ConstraintReferenceQuery:
         """
         Query all constraint references from the DSS.
         """
-        token = await AuthService.get_instance().get_dss_token()
-
-        headers = {
-            "Authorization": f"Bearer {token}",
-        }
-
-        print(headers)
-
         body = {
             "area_of_interest": area_of_interest.model_dump(mode="json"),
         }
 
-        pprint(body)
-
-        response = await self._client.post(
+        response = await self._authenticated_post(
             "/constraint_references/query",
-            headers=headers,
-            json=body,
+            body=body,
+            scope=Scope.CONSTRAINT_PROCESSING,
         )
 
-        return response
+        if response.status_code != 200: 
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=f"Error querying DSS: {response.text}",
+            )
+
+        constraint_reference = ConstraintReferenceQuery.model_validate(response.json())
+
+        return constraint_reference
 
 
