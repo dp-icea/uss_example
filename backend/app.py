@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from routes.operational_intent import router as OperationalIntentsRouter
+from routes.flight_plan import router as FlightPlanRouter
 from config.config import init_database
 from contextlib import asynccontextmanager
 
@@ -32,4 +33,5 @@ async def catch_exceptions_middleware(request: Request, call_next):
         )
 
 app.include_router(OperationalIntentsRouter, tags=["Operational Intents"], prefix="/uss/v1/operational_intents")
+app.include_router(FlightPlanRouter, tags=["Flight Plan"], prefix="/uss/v1/flight_plan")
 
