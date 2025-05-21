@@ -3,10 +3,11 @@ import jwt
 from fastapi import HTTPException
 from datetime import datetime
 from threading import Lock
+from schemas.error import ResponseError
 from config.config import Settings
 from enum import Enum
 
-DSS_AUD = "dss"
+DSS_AUD = "core-service"
 
 class Scope(str, Enum):
     CONSTRAINT_PROCESSING = "utm.constraint_processing"
@@ -56,8 +57,30 @@ class AuthService:
                 detail="Invalid audience. Only DSS communication is supported so far.",
             )
 
-        if DSS_AUD not in self._tokens or scope not in self._tokens[DSS_AUD] or not self._is_token_valid(self._tokens[DSS_AUD][scope]):
-            await self.refresh_dss_token(scope = scope)
+        params = {
+            "intended_audience": aud,
+            "scope": scope.value,
+            "apikey": self._auth_key,
+        }
+
+        response = await self._client.get(
+            "/token",
+            params=params,
+        )
+
+        if response.status_code != 200:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=ResponseError(
+                    message="Error getting DSS token.",
+                    data=response.json(),
+                ).model_dump(mode="json"),
+            )
+
+        if DSS_AUD not in self._tokens:
+            self._tokens[DSS_AUD] = {}
+
+        self._tokens[DSS_AUD][scope] = response.json().get("access_token")
 
     def _is_token_valid(self, token: str) -> bool:
         payload = jwt.decode(token, options={"verify_signature": False})
@@ -72,30 +95,3 @@ class AuthService:
 
         return False
 
-    async def refresh_dss_token(self, scope: Scope = Scope.CONSTRAINT_PROCESSING):
-        params = {
-            # TODO: Ask for the reason of this intended_audience
-            "intended_audience": "localhost",
-            "scope": scope.value,
-            "apikey": self._auth_key,
-            "grant_type": "client_credentials"
-        }
-
-        response = await self._client.get(
-            "/token",
-            params=params,
-        )
-
-        if response.status_code != 200:
-            raise HTTPException(
-                status_code=response.status_code,
-                detail=f"Error getting DSS token: {response.text}",
-            )
-
-        if DSS_AUD not in self._tokens:
-            self._tokens[DSS_AUD] = {}
-
-        self._tokens[DSS_AUD][scope] = response.json().get("access_token")
-
-    async def close(self):
-        await self._client.aclose()

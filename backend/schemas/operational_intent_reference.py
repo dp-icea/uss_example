@@ -6,7 +6,7 @@ from schemas.operational_intent import TimePoint, AreaOfInterestSchema
 class OperationQueryResponse(BaseModel):
     operational_intent_references: List[Any]
 
-class OperationalIntentReferenceDetail(BaseModel):
+class OperationalIntentReference(BaseModel):
     id: UUID
     flight_type: str
     manager: str
@@ -16,7 +16,7 @@ class OperationalIntentReferenceDetail(BaseModel):
     ovn: str
     time_start: TimePoint
     time_end: TimePoint
-    uss_base_url: str
+    uss_base_url: HttpUrl
     subscription_id: UUID
 
 class NewSubscription(BaseModel):
@@ -44,5 +44,5 @@ class OperationCreateRequest(BaseModel):
 
 class OperationCreateResponse(BaseModel):
     subscribers: List[Any]
-    operational_intent_reference: OperationalIntentReferenceDetail
+    operational_intent_reference: OperationalIntentReference
 

@@ -1,14 +1,14 @@
-import httpx
 from http import HTTPStatus
+from typing import Any
 from enum import Enum
 from uuid import UUID
-from typing import Any
 from threading import Lock
 from fastapi import HTTPException
 from pydantic import BaseModel, HttpUrl
 from config.config import Settings
 from config.config import Settings
-from services.auth_service import AuthService, Scope, DSS_AUD
+from services.auth_service import Scope, DSS_AUD
+from services.auth_client import AuthClient
 from schemas.operational_intent import AreaOfInterestSchema
 from schemas.flight_type import FlightType
 from schemas.error import ResponseError
@@ -21,36 +21,6 @@ class OperationalIntentState(str, Enum):
     """
     ACCEPTED = "Accepted"
 
-class AuthClient(httpx.AsyncClient):
-    """
-    Custom HTTP client for authentication.
-    """
-    def __init__(self, aud: str, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        self._aud = aud
-    
-    async def request(self, method: str, url: httpx.URL | str, **kwargs: Any) -> httpx.Response:
-        auth = AuthService.get_instance()
-        scope = kwargs.pop("scope", None)
-        
-        if scope is None:
-            raise ValueError("Scope must be provided in the request for authentication.")
-
-        token = await auth.get_token(aud=self._aud, scope=scope)
-        headers = kwargs.pop("headers", {})
-        headers["Authorization"] = f"Bearer {token}"
-        kwargs["headers"] = headers
-        response = await super().request(method, url, **kwargs)
-
-        if response.status_code == HTTPStatus.UNAUTHORIZED.value or response.status_code == HTTPStatus.FORBIDDEN.value:
-            await auth.refresh_token(aud=self._aud, scope=scope)
-            token = await auth.get_token(aud=self._aud, scope=scope)
-            headers["Authorization"] = f"Bearer {token}"
-            kwargs["headers"] = headers
-            response = await super().request(method, url, **kwargs)
-
-        return response
-
 class DSSService:
     _instance = None
     _lock = Lock()
@@ -61,8 +31,6 @@ class DSSService:
         
         if not self._base_url:
             raise ValueError("DSS_URL must be set in the environment variables.")
-
-        print(f"DSS URL: {self._base_url}")
 
         self._client = AuthClient(aud=DSS_AUD, base_url=self._base_url)
 
@@ -149,6 +117,7 @@ class DSSService:
             key=[],
             state=OperationalIntentState.ACCEPTED.value,
             uss_base_url=HttpUrl(app_domain),
+            # TODO: Figure out what is a subscription.
             new_subscription=NewSubscription(
                 uss_base_url=HttpUrl(app_domain),
                 notify_for_constraints=True,
@@ -175,5 +144,27 @@ class DSSService:
         operational_intent = OperationCreateResponse.model_validate(response.json())
 
         return operational_intent
+
+    async def get_operational_intent_reference(self, entity_id: UUID) -> Any:
+        """
+        Get the operational intent reference from the DSS.
+        """
+
+        response = await self._client.request(
+            "get",
+            f"/operational_intent_references/{entity_id}",
+            scope=Scope.STRATEGIC_COORDINATION,
+        )
+
+        if response.status_code != HTTPStatus.OK.value:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=ResponseError(
+                    message="Error getting operational intent reference.",
+                    data=response.json(),
+                ).model_dump(mode="json"),
+            )
+
+        return response.json() 
 
 

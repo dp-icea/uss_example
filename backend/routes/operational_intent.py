@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Body, HTTPException
+from fastapi.responses import JSONResponse
 
 from uuid import UUID, uuid4
 from http import HTTPStatus
-from models.operational_intent import OperationalIntentModel
+from models.operational_intent import OperationalIntentModel, OperationalIntentDetails
 from services.auth_service import AuthService
 from services.dss_service import DSSService
 from schemas.operational_intent import AreaOfInterestSchema
@@ -37,7 +38,6 @@ async def create_operational_intent(
         area_of_interest=area_of_interest
     )
     if len(query_constraints.constraint_references) != 0:
-        # TODO: Send the intersection to the user later
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST.value,
             detail=ResponseError(
@@ -65,12 +65,13 @@ async def create_operational_intent(
         area_of_interest=area_of_interest,
     )
      
-    # Create the flight plan document
     operation_model = OperationalIntentModel(
-        entity_id=entity_id,
-        volume=area_of_interest.volume,
-        time_start=area_of_interest.time_start,
-        time_end=area_of_interest.time_end,
+            reference = create_operation.operational_intent_reference,
+            details = OperationalIntentDetails(
+                volumes=[area_of_interest],
+                off_nominela_volumes=[],
+                priority=0,
+            ),
     )
 
     await operation_model.create()
@@ -81,3 +82,24 @@ async def create_operational_intent(
         data=create_operation.model_dump(mode="json"),
     )
 
+@router.get(
+    "/{entity_id}",
+    response_description="Retrieve the specified operational intent details",
+    # response_model=JSONResponse,
+    status_code=200,
+)
+async def get_operational_intent(
+    entity_id: UUID,
+):
+    """
+    Retrieve the specified operational intent details
+    """
+
+    # Get the operational intent from the DSS
+    operational_intent = await operational_intent_controller.get_operational_intent(
+        entity_id=entity_id,
+    )
+
+    return {
+        "operational_intent": operational_intent.model_dump(mode="json"),
+    }
