@@ -1,7 +1,16 @@
 from typing import List, Any, Optional
+from enum import Enum
 from uuid import UUID
 from pydantic import BaseModel, HttpUrl, model_validator
 from schemas.operational_intent import TimePoint, AreaOfInterestSchema
+
+class OperationalIntentState(str, Enum):
+    ACCEPTED = "Accepted"
+    ACTIVATED = "Activated"
+    NONCONFORMING = "Nonconforming"
+
+class OperationalIntentUSSAvailability(str, Enum):
+    UNKNOWN = "Unknown"
 
 class OperationQueryResponse(BaseModel):
     operational_intent_references: List[Any]
@@ -10,9 +19,9 @@ class OperationalIntentReference(BaseModel):
     id: UUID
     flight_type: str
     manager: str
-    uss_availability: str
+    uss_availability: OperationalIntentUSSAvailability
     version: int
-    state: str
+    state: OperationalIntentState
     ovn: str
     time_start: TimePoint
     time_end: TimePoint
@@ -39,8 +48,6 @@ class OperationCreateRequest(BaseModel):
         if (subscription_id is None and new_subscription is None) or (subscription_id is not None and new_subscription is not None):
             raise ValueError("Exactly one of 'subscription_id' or 'new_subscription' must be provided.")
         return values
-
-
 
 class OperationCreateResponse(BaseModel):
     subscribers: List[Any]

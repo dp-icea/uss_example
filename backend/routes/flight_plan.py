@@ -1,16 +1,11 @@
 from fastapi import APIRouter, Body, HTTPException
-from fastapi.responses import JSONResponse
-
-from uuid import UUID, uuid4
+from uuid import uuid4
 from http import HTTPStatus
 from models.operational_intent import OperationalIntentModel, OperationalIntentDetails
-from services.auth_service import AuthService
 from services.dss_service import DSSService
 from schemas.operational_intent import AreaOfInterestSchema
 from schemas.response import Response
 from schemas.error import ResponseError
-
-import controllers.operational_intent as operational_intent_controller
 
 router = APIRouter()
 
@@ -81,3 +76,4 @@ async def create_operational_intent(
         message="Operational intent created successfully",
         data=create_operation.model_dump(mode="json"),
     )
+
