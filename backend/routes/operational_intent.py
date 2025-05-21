@@ -6,6 +6,7 @@ from services.auth_service import AuthService
 from services.dss_service import DSSService
 from schemas.operational_intent import AreaOfInterestSchema
 from schemas.response import Response
+from schemas.error import ResponseError
 
 import controllers.operational_intent as operational_intent_controller
 
@@ -38,7 +39,10 @@ async def create_operational_intent(
         # TODO: Send the intersection to the user later
         raise HTTPException(
             status_code=400,
-            detail="Area of interest is not valid",
+            detail=ResponseError(
+                message="Area of interest is blocked by constraints.",
+                data=query_constraints.model_dump(mode="json"),
+            ).model_dump(mode="json"),
         )
 
     # Verify other Operational Intents
@@ -48,7 +52,10 @@ async def create_operational_intent(
     if len(query_operations.operational_intent_references) != 0:
         raise HTTPException(
             status_code=400,
-            detail="Area of interest is not valid",
+            detail=ResponseError(
+                message="Area of interest is blocked by other operational intents.",
+                data=query_operations.model_dump(mode="json"),
+            ).model_dump(mode="json"),
         )
 
     # Register the operational intent reference in the DSS

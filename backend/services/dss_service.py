@@ -1,14 +1,15 @@
 import httpx
+from http import HTTPStatus
 from enum import Enum
 from uuid import UUID
-from pprint import pprint
 from typing import Any
 from threading import Lock
 from fastapi import HTTPException
 from pydantic import BaseModel
 from config.config import Settings
-from services.auth_service import AuthService, Scope
+from services.auth_service import AuthService, Scope, DSS_AUD
 from schemas.operational_intent import AreaOfInterestSchema
+from schemas.error import ResponseError
 from schemas.constraints import ConstraintQueryResponse
 from schemas.operational_intent_reference import OperationCreateResponse, OperationQueryResponse
 
@@ -17,6 +18,42 @@ class OperationalIntentState(str, Enum):
     Enum for the operational intent state.
     """
     ACCEPTED = "Accepted"
+
+class AuthClient(httpx.AsyncClient):
+    """
+    Custom HTTP client for authentication.
+    """
+    def __init__(self, aud: str, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self._aud = aud
+    
+    async def request(self, method: str, url: httpx.URL | str, **kwargs: Any) -> httpx.Response:
+        auth = AuthService.get_instance()
+        scope = kwargs.pop("scope", None)
+        
+        if scope is None:
+            raise HTTPException(
+                status_code=500,
+                detail=ResponseError(
+                    message="Scope or audience not provided in the request.",
+                    data=None,
+                ).model_dump(mode="json"),
+            )
+
+        token = await auth.get_token(aud=self._aud, scope=scope)
+        headers = kwargs.pop("headers", {})
+        headers["Authorization"] = f"Bearer {token}"
+        kwargs["headers"] = headers
+        response = await super().request(method, url, **kwargs)
+
+        if response.status_code == HTTPStatus.UNAUTHORIZED.value or response.status_code == HTTPStatus.FORBIDDEN.value:
+            await auth.refresh_token(aud=self._aud, scope=scope)
+            token = await auth.get_token(aud=self._aud, scope=scope)
+            headers["Authorization"] = f"Bearer {token}"
+            kwargs["headers"] = headers
+            response = await super().request(method, url, **kwargs)
+
+        return response
 
 class DSSService:
     _instance = None
@@ -31,7 +68,7 @@ class DSSService:
 
         print(f"DSS URL: {self._base_url}")
 
-        self._client = httpx.AsyncClient(base_url=self._base_url)
+        self._client = AuthClient(aud=DSS_AUD, base_url=self._base_url)
 
     @classmethod
     def get_instance(cls):
@@ -44,21 +81,6 @@ class DSSService:
     async def close(self):
         await self._client.aclose()
 
-    async def _authenticated_request(self, method: str, scope: Scope, **kwargs) -> httpx.Response:
-        auth = AuthService.get_instance()
-        token = await auth.get_dss_token(scope=scope)
-        headers = kwargs.pop("headers", {})
-        headers["Authorization"] = f"Bearer {token}"
-
-        request_func = getattr(self._client, method.lower())
-        response = await request_func(headers=headers, **kwargs)
-        if response.status_code == 403:
-            await auth.refresh_dss_token(scope=scope)
-            token = await auth.get_dss_token(scope=scope)
-            headers["Authorization"] = f"Bearer {token}"
-            response = await request_func(headers=headers, **kwargs)
-        return response
-
     async def query_constraint_references(self, area_of_interest: AreaOfInterestSchema) -> ConstraintQueryResponse:
         """
         Query all constraint references from the DSS.
@@ -67,17 +89,20 @@ class DSSService:
             "area_of_interest": area_of_interest.model_dump(mode="json"),
         }
 
-        response = await self._authenticated_request(
-            method="post",
+        response = await self._client.request(
+            "post",
+            "/constraint_references/query",
             scope=Scope.CONSTRAINT_PROCESSING,
-            url="/constraint_references/query",
             json=body,
         )
 
-        if response.status_code != 200: 
+        if response.status_code != HTTPStatus.OK.value:
             raise HTTPException(
                 status_code=response.status_code,
-                detail=f"Error querying DSS: {response.text}",
+                detail=ResponseError(
+                    message="Error querying DSS constraint references.",
+                    data=response.json(),
+                ).model_dump(mode="json"),
             )
 
         constraint = ConstraintQueryResponse.model_validate(response.json())
@@ -92,17 +117,20 @@ class DSSService:
             "area_of_interest": area_of_interest.model_dump(mode="json"),
         }
 
-        response = await self._authenticated_request(
-            method="post",
+        response = await self._client.request(
+            "post",
+            "/operational_intent_references/query",
             scope=Scope.STRATEGIC_COORDINATION,
-            url="/operational_intent_references/query",
             json=body,
         )
 
-        if response.status_code != 200: 
+        if response.status_code != HTTPStatus.OK.value:
             raise HTTPException(
                 status_code=response.status_code,
-                detail=f"Error querying DSS: {response.text}",
+                detail=ResponseError(
+                    message="Error querying DSS operational intents.",
+                    data=response.json(),
+                ).model_dump(mode="json"),
             )
 
         operational_intents = OperationQueryResponse.model_validate(response.json())
@@ -132,17 +160,20 @@ class DSSService:
             "flight_type": "VLOS",
         }
 
-        response = await self._authenticated_request(
-            method="put",
+        response = await self._client.request(
+            "put",
+            f"/operational_intent_references/{entity_id}",
             scope=Scope.STRATEGIC_COORDINATION,
-            url=f"/operational_intent_references/{entity_id}",
             json=body,
         )
 
-        if response.status_code != 201: 
+        if response.status_code != HTTPStatus.CREATED.value:
             raise HTTPException(
                 status_code=response.status_code,
-                detail=f"Error creating operational intent: {response.text}",
+                detail=ResponseError(
+                    message="Error creating operational intent.",
+                    data=response.json(),
+                ).model_dump(mode="json"),
             )
 
         operational_intent = OperationCreateResponse.model_validate(response.json())

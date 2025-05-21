@@ -1,10 +1,12 @@
 import httpx
+import jwt
 from fastapi import HTTPException
+from datetime import datetime
 from threading import Lock
 from config.config import Settings
 from enum import Enum
 
-DSS_ID = "dss"
+DSS_AUD = "dss"
 
 class Scope(str, Enum):
     CONSTRAINT_PROCESSING = "utm.constraint_processing"
@@ -35,10 +37,40 @@ class AuthService:
                     cls._instance = cls()
         return cls._instance
 
-    async def get_dss_token(self, scope: Scope = Scope.CONSTRAINT_PROCESSING):
-        if DSS_ID not in self._tokens or scope not in self._tokens[DSS_ID]:
+    async def get_token(self, aud: str, scope: Scope = Scope.CONSTRAINT_PROCESSING) -> str:
+        if aud != DSS_AUD:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid audience. Only DSS communication is supported so far.",
+            )
+
+        if DSS_AUD not in self._tokens or scope not in self._tokens[DSS_AUD] or not self._is_token_valid(self._tokens[DSS_AUD][scope]):
+            await self.refresh_token(aud=aud, scope=scope)
+
+        return self._tokens[DSS_AUD][scope]
+
+    async def refresh_token(self, aud: str, scope: Scope = Scope.CONSTRAINT_PROCESSING):
+        if aud != DSS_AUD:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid audience. Only DSS communication is supported so far.",
+            )
+
+        if DSS_AUD not in self._tokens or scope not in self._tokens[DSS_AUD] or not self._is_token_valid(self._tokens[DSS_AUD][scope]):
             await self.refresh_dss_token(scope = scope)
-        return self._tokens[DSS_ID][scope]
+
+    def _is_token_valid(self, token: str) -> bool:
+        payload = jwt.decode(token, options={"verify_signature": False})
+        exp = payload.get("exp", None)
+        if exp is None:
+            return False
+        exp = datetime.fromtimestamp(exp)
+        now = datetime.now()
+
+        if exp > now:
+            return True
+
+        return False
 
     async def refresh_dss_token(self, scope: Scope = Scope.CONSTRAINT_PROCESSING):
         params = {
@@ -60,10 +92,10 @@ class AuthService:
                 detail=f"Error getting DSS token: {response.text}",
             )
 
-        if DSS_ID not in self._tokens:
-            self._tokens[DSS_ID] = {}
+        if DSS_AUD not in self._tokens:
+            self._tokens[DSS_AUD] = {}
 
-        self._tokens[DSS_ID][scope] = response.json().get("access_token")
+        self._tokens[DSS_AUD][scope] = response.json().get("access_token")
 
     async def close(self):
         await self._client.aclose()
