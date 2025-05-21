@@ -1,4 +1,11 @@
 import uvicorn
+from config.config import Settings
 
 if __name__ == "__main__":
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+    host = Settings().HOST
+    port = Settings().PORT
+    
+    if host is None or port is None:
+        raise ValueError("HOST and PORT must be set in the environment variables.")
+
+    uvicorn.run("app:app", host=host, port=port, reload=True)

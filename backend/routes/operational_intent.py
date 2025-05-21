@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Body, HTTPException
 
 from uuid import UUID, uuid4
+from http import HTTPStatus
 from models.operational_intent import OperationalIntentModel
 from services.auth_service import AuthService
 from services.dss_service import DSSService
@@ -38,7 +39,7 @@ async def create_operational_intent(
     if len(query_constraints.constraint_references) != 0:
         # TODO: Send the intersection to the user later
         raise HTTPException(
-            status_code=400,
+            status_code=HTTPStatus.BAD_REQUEST.value,
             detail=ResponseError(
                 message="Area of interest is blocked by constraints.",
                 data=query_constraints.model_dump(mode="json"),
@@ -51,7 +52,7 @@ async def create_operational_intent(
     )
     if len(query_operations.operational_intent_references) != 0:
         raise HTTPException(
-            status_code=400,
+            status_code=HTTPStatus.BAD_REQUEST.value,
             detail=ResponseError(
                 message="Area of interest is blocked by other operational intents.",
                 data=query_operations.model_dump(mode="json"),

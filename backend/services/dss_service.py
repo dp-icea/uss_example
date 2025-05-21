@@ -5,13 +5,15 @@ from uuid import UUID
 from typing import Any
 from threading import Lock
 from fastapi import HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, HttpUrl
+from config.config import Settings
 from config.config import Settings
 from services.auth_service import AuthService, Scope, DSS_AUD
 from schemas.operational_intent import AreaOfInterestSchema
+from schemas.flight_type import FlightType
 from schemas.error import ResponseError
 from schemas.constraints import ConstraintQueryResponse
-from schemas.operational_intent_reference import OperationCreateResponse, OperationQueryResponse
+from schemas.operational_intent_reference import OperationCreateResponse, OperationQueryResponse, OperationCreateRequest, NewSubscription
 
 class OperationalIntentState(str, Enum):
     """
@@ -32,13 +34,7 @@ class AuthClient(httpx.AsyncClient):
         scope = kwargs.pop("scope", None)
         
         if scope is None:
-            raise HTTPException(
-                status_code=500,
-                detail=ResponseError(
-                    message="Scope or audience not provided in the request.",
-                    data=None,
-                ).model_dump(mode="json"),
-            )
+            raise ValueError("Scope must be provided in the request for authentication.")
 
         token = await auth.get_token(aud=self._aud, scope=scope)
         headers = kwargs.pop("headers", {})
@@ -138,33 +134,33 @@ class DSSService:
         return operational_intents
 
     async def create_operational_intent(self, entity_id: UUID, area_of_interest: AreaOfInterestSchema) -> OperationCreateResponse:
-
         """
         Create a new operational intent in the DSS.
         """
-        body = {
-            "extents": [
-                area_of_interest.model_dump(mode="json"),
+        app_domain = Settings().DOMAIN
+
+        if not app_domain:
+            raise ValueError("DOMAIN must be set in the environment variables.")
+
+        body = OperationCreateRequest(
+            extents=[
+                area_of_interest
             ],
-            # TODO: Add this when I am solving conflicts
-            "key": [],
-            "state": OperationalIntentState.ACCEPTED.value,
-            "uss_base_url": "https://localhost:8000",
-            # TODO: Add this later when supporting already created subscriptions
-            # "subscription_id": "foo"
-            "new_subscription": {
-                    "uss_base_url": "string",
-                    "notify_for_constraints": True,
-            },
-            # TODO: Add this later to support other flight types
-            "flight_type": "VLOS",
-        }
+            key=[],
+            state=OperationalIntentState.ACCEPTED.value,
+            uss_base_url=HttpUrl(app_domain),
+            new_subscription=NewSubscription(
+                uss_base_url=HttpUrl(app_domain),
+                notify_for_constraints=True,
+            ),
+            flight_type=FlightType.VLOS.value,
+        )
 
         response = await self._client.request(
             "put",
             f"/operational_intent_references/{entity_id}",
             scope=Scope.STRATEGIC_COORDINATION,
-            json=body,
+            json=body.model_dump(mode="json"),
         )
 
         if response.status_code != HTTPStatus.CREATED.value:

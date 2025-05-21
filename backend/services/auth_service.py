@@ -67,7 +67,7 @@ class AuthService:
         exp = datetime.fromtimestamp(exp)
         now = datetime.now()
 
-        if exp > now:
+        if exp >= now:
             return True
 
         return False
