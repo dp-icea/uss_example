@@ -80,22 +80,3 @@ async def create_operational_intent(
         data=create_operation.model_dump(mode="json"),
     )
 
-@router.get(
-    "/test",
-    response_description="Just a test endpoint",
-    response_model=Response
-)
-async def test():
-    """
-    Just a test endpoint
-    """
-        
-    token = await AuthService.get_instance().get_dss_token()
-
-    return Response(
-        status=200,
-        message="Test endpoint",
-        data={
-            "token": token,
-        },
-    )
