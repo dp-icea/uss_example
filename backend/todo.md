@@ -1,9 +1,9 @@
 # TODO
 
 Flight Plan
-- Register flight plan
+X Register flight plan
     X Register a flight plan without constraint
-    - Register a flight with constraint
+    X Register a flight with constraint
 X Request information on a flight plan
     X Flight area details
     - Authorization

@@ -1,11 +1,30 @@
 from uuid import UUID
 from datetime import timedelta
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from utils.parse_dict import parse_dict
 import jmespath
 import controllers.operational_intent as operational_intent_controller
+from schemas.operational_intent import OperationNotificationRequest
 
 router = APIRouter()
+
+@router.post(
+    "/",
+    response_description="Receive notification of changed operational details",
+    response_model=dict,
+    status_code=204,
+)
+async def handle_operational_intent_notification(
+    notification: OperationNotificationRequest,
+):
+    """
+    Receive notification of changed operational details
+    """
+
+    # Verify if the Operation should be deleted
+    if notification.operational_intent is None:
+        await operational_intent_controller.delete_operational_intent(
+
 
 # TODO: Add a Depends function to validate the aud parameter in the JWT tokenm 
 #   and validating the signature with the public key
