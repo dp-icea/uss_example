@@ -12,9 +12,6 @@ class OperationalIntentState(str, Enum):
 class OperationalIntentUSSAvailability(str, Enum):
     UNKNOWN = "Unknown"
 
-class OperationQueryResponse(BaseModel):
-    operational_intent_references: List[Any]
-
 class OperationalIntentReference(BaseModel):
     id: UUID
     flight_type: str
@@ -27,6 +24,9 @@ class OperationalIntentReference(BaseModel):
     time_end: TimePoint
     uss_base_url: HttpUrl
     subscription_id: UUID
+
+class OperationQueryResponse(BaseModel):
+    operational_intent_references: List[OperationalIntentReference]
 
 class NewSubscription(BaseModel):
     uss_base_url: HttpUrl

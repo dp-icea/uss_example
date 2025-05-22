@@ -39,24 +39,12 @@ class AuthService:
         return cls._instance
 
     async def get_token(self, aud: str, scope: Scope = Scope.CONSTRAINT_PROCESSING) -> str:
-        if aud != DSS_AUD:
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid audience. Only DSS communication is supported so far.",
-            )
-
-        if DSS_AUD not in self._tokens or scope not in self._tokens[DSS_AUD] or not self._is_token_valid(self._tokens[DSS_AUD][scope]):
+        if aud not in self._tokens or scope not in self._tokens[aud] or not self._is_token_valid(self._tokens[aud][scope]):
             await self.refresh_token(aud=aud, scope=scope)
 
-        return self._tokens[DSS_AUD][scope]
+        return self._tokens[aud][scope]
 
     async def refresh_token(self, aud: str, scope: Scope = Scope.CONSTRAINT_PROCESSING):
-        if aud != DSS_AUD:
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid audience. Only DSS communication is supported so far.",
-            )
-
         params = {
             "intended_audience": aud,
             "scope": scope.value,
@@ -77,10 +65,10 @@ class AuthService:
                 ).model_dump(mode="json"),
             )
 
-        if DSS_AUD not in self._tokens:
-            self._tokens[DSS_AUD] = {}
+        if aud not in self._tokens:
+            self._tokens[aud] = {}
 
-        self._tokens[DSS_AUD][scope] = response.json().get("access_token")
+        self._tokens[aud][scope] = response.json().get("access_token")
 
     def _is_token_valid(self, token: str) -> bool:
         payload = jwt.decode(token, options={"verify_signature": False})

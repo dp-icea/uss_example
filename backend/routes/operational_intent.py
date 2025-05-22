@@ -7,6 +7,9 @@ import controllers.operational_intent as operational_intent_controller
 
 router = APIRouter()
 
+# TODO: Add a Depends function to validate the aud parameter in the JWT tokenm 
+#   and validating the signature with the public key
+# So far it is not validating the token
 @router.get(
     "/{entity_id}",
     response_description="Retrieve the specified operational intent details",

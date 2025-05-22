@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Any
+from typing import Any, List
 from enum import Enum
 from uuid import UUID
 from threading import Lock
@@ -22,9 +22,6 @@ class OperationalIntentState(str, Enum):
     ACCEPTED = "Accepted"
 
 class DSSService:
-    _instance = None
-    _lock = Lock()
-
     def __init__(self):
         settings = Settings()
         self._base_url = settings.DSS_URL
@@ -33,14 +30,6 @@ class DSSService:
             raise ValueError("DSS_URL must be set in the environment variables.")
 
         self._client = AuthClient(aud=DSS_AUD, base_url=self._base_url)
-
-    @classmethod
-    def get_instance(cls):
-        if cls._instance is None:
-            with cls._lock:
-                if cls._instance is None:
-                    cls._instance = cls()
-        return cls._instance
 
     async def close(self):
         await self._client.aclose()
@@ -101,7 +90,7 @@ class DSSService:
 
         return operational_intents
 
-    async def create_operational_intent(self, entity_id: UUID, area_of_interest: AreaOfInterestSchema) -> OperationCreateResponse:
+    async def create_operational_intent(self, entity_id: UUID, area_of_interest: AreaOfInterestSchema, keys: List[str]=[]) -> OperationCreateResponse:
         """
         Create a new operational intent in the DSS.
         """
@@ -114,7 +103,7 @@ class DSSService:
             extents=[
                 area_of_interest
             ],
-            key=[],
+            key=keys,
             state=OperationalIntentState.ACCEPTED.value,
             uss_base_url=HttpUrl(app_domain),
             # TODO: Figure out what is a subscription.
