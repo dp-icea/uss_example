@@ -1,3 +1,4 @@
+import os
 from typing import Optional
 from beanie import init_beanie
 from pydantic_settings import BaseSettings
@@ -11,11 +12,9 @@ class Settings(BaseSettings):
     AUTH_KEY: Optional[str] = None
     DSS_URL: Optional[str] = None
     DOMAIN: Optional[str] = None
-    HOST: Optional[str] = None
-    PORT: Optional[int] = None
 
     class Config:
-        env_file = ".env.dev"
+        env_file = f".env.{os.getenv('ENV', 'dev')}"
         from_attributes = True
 
 async def init_database():

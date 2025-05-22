@@ -110,7 +110,3 @@ async def get_operational_intent_authorization(
         "timestamp": 1,
         "observations": "",
     }
-
-@router.post(
-    "/",
-    response_description="Handle a change in ",
