@@ -1,32 +1,14 @@
 from typing import List, Any, Optional
-from enum import Enum
 from uuid import UUID
 from pydantic import BaseModel, HttpUrl, model_validator
-from schemas.operational_intent import TimePoint, AreaOfInterestSchema
-
-class OperationalIntentState(str, Enum):
-    ACCEPTED = "Accepted"
-    ACTIVATED = "Activated"
-    NONCONFORMING = "Nonconforming"
-
-class OperationalIntentUSSAvailability(str, Enum):
-    UNKNOWN = "Unknown"
-
-class OperationalIntentReference(BaseModel):
-    id: UUID
-    flight_type: str
-    manager: str
-    uss_availability: OperationalIntentUSSAvailability
-    version: int
-    state: OperationalIntentState
-    ovn: str
-    time_start: TimePoint
-    time_end: TimePoint
-    uss_base_url: HttpUrl
-    subscription_id: UUID
+from schemas.operational_intent import OperationalIntentReference
+from schemas.area_of_interest import AreaOfInterestSchema
 
 class OperationQueryResponse(BaseModel):
     operational_intent_references: List[OperationalIntentReference]
+
+class OperationGetResponse(BaseModel):
+    operational_intent_reference: OperationalIntentReference
 
 class NewSubscription(BaseModel):
     uss_base_url: HttpUrl
@@ -50,6 +32,10 @@ class OperationCreateRequest(BaseModel):
         return values
 
 class OperationCreateResponse(BaseModel):
+    subscribers: List[Any]
+    operational_intent_reference: OperationalIntentReference
+
+class OperationDeleteResponse(BaseModel):
     subscribers: List[Any]
     operational_intent_reference: OperationalIntentReference
 

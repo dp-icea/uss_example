@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Body, HTTPException
 from typing import List
-from uuid import UUID, uuid4
+from uuid import uuid4
 from http import HTTPStatus
 from models.operational_intent import OperationalIntentModel, OperationalIntentDetails
 from services.dss_service import DSSService
 from services.uss_service import USSService
-from schemas.operational_intent import AreaOfInterestSchema
+from schemas.area_of_interest import AreaOfInterestSchema
 from schemas.response import Response
 from schemas.error import ResponseError
 
@@ -66,7 +66,7 @@ async def create_flight_plan(
             reference = create_operation.operational_intent_reference,
             details = OperationalIntentDetails(
                 volumes=[area_of_interest],
-                off_nominela_volumes=[],
+                off_nominal_volumes=[],
                 priority=0,
             ),
     )
@@ -74,11 +74,10 @@ async def create_flight_plan(
     await operation_model.create()
 
     return Response(
-        status=201,
+        status=HTTPStatus.CREATED.value,
         message="Operational intent created successfully",
         data=create_operation.model_dump(mode="json"),
     )
-
 
 @router.put(
     "/with_conflict",
@@ -135,7 +134,7 @@ async def create_flight_plan_with_conflict(
             reference = create_operation.operational_intent_reference,
             details = OperationalIntentDetails(
                 volumes=[area_of_interest],
-                off_nominela_volumes=[],
+                off_nominal_volumes=[],
                 priority=0,
             ),
     )
@@ -143,7 +142,7 @@ async def create_flight_plan_with_conflict(
     await operation_model.create()
 
     return Response(
-        status=201,
+        status=HTTPStatus.CREATED.value,
         message="Operational intent created successfully",
         data=create_operation.model_dump(mode="json"),
     )

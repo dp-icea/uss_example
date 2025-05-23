@@ -38,6 +38,10 @@ class USSService:
         Query the operational intent from another USS that owns the entity.
         """
 
+        # TODO: Doesnt make sense for the URL to have `/uss/v1/`
+        # how do they upgrade the api system?
+        # should be just "/operational_intents/{entity_id}", because
+        # then eventually they will start to anounce their request as  /uss/v2/
         response = await self._client.request(
             "get",
             f"/uss/v1/operational_intents/{entity_id}",

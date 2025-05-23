@@ -1,8 +1,8 @@
 from typing import List, Any
 from enum import Enum
-from schemas.operational_intent import TimePoint
+from schemas.area_of_interest import AreaOfInterestSchema
+from schemas.time_point import TimePoint
 from uuid import UUID
-from schemas.operational_intent import AreaOfInterestSchema
 from pydantic import BaseModel, HttpUrl
 
 class ConstraintQueryRequest(BaseModel):

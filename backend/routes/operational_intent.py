@@ -1,17 +1,17 @@
+from typing import Set
 from uuid import UUID
 from datetime import timedelta
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from utils.parse_dict import parse_dict
-import jmespath
 import controllers.operational_intent as operational_intent_controller
-from schemas.operational_intent import OperationNotificationRequest
+from services.dss_service import DSSService
+from schemas.operational_intent import OperationNotificationRequest, OperationalIntentState
 
 router = APIRouter()
 
 @router.post(
     "/",
     response_description="Receive notification of changed operational details",
-    response_model=dict,
     status_code=204,
 )
 async def handle_operational_intent_notification(
@@ -21,9 +21,35 @@ async def handle_operational_intent_notification(
     Receive notification of changed operational details
     """
 
+    # Check if the entity ID existsds
+    dss = DSSService()
+
+    operational_intent = await operational_intent_controller.get_operational_intent(
+        entity_id=notification.operational_intent_id,
+    )
+ 
     # Verify if the Operation should be deleted
     if notification.operational_intent is None:
-        await operational_intent_controller.delete_operational_intent(
+        # Delete the opreational intent from the DSS database
+        # TODO: Notify the subscribers from the deleted operation area
+        _ = await dss.delete_operational_intent_reference(
+            entity_id=operational_intent.reference.id,
+            ovn=operational_intent.reference.ovn,
+        )
+
+        # Update the operational intent state in the database
+        await operational_intent.set({
+            "reference.state": OperationalIntentState.DELETED.value,
+        })
+        return
+
+    # Update the modified operational intent values in the DSS database 
+    # operational_intent.reference = notification.operational_intent.reference
+    # operational_intent.details = notification.operational_intent.details
+    await operational_intent.set({
+        "reference": notification.operational_intent.reference,
+        "details": notification.operational_intent.details,
+    })
 
 
 # TODO: Add a Depends function to validate the aud parameter in the JWT tokenm 

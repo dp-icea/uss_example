@@ -42,3 +42,4 @@ async def delete_operational_intent(entity_id: UUID) -> None:
         )
 
     await operational_intent.delete()
+

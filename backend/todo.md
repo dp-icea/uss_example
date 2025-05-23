@@ -9,6 +9,9 @@ X Request information on a flight plan
     - Authorization
     - Telemetry
 - Inform changes in a flight plan area (Constraints or other flight plans)
+    - Authenticate request made by another USS
+    - Delete the flight in the DSS
+    - Change local flight status to Deleted
 - Start the flight
 
 USS to USS
@@ -17,6 +20,7 @@ USS to USS
 
 Subscription
 - Add subscription to an area
+- When handling operational intent delete, notify the subscribers
 - Receive subscription notifications
 - Send subscription notifications (When creating a flight)
 

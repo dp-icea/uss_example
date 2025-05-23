@@ -1,22 +1,36 @@
 from uuid import UUID
+from enum import Enum
 from typing import Any, Optional, List
-from pydantic import BaseModel
-from datetime import datetime
-from schemas.operational_intent_reference import OperationalIntentReference
+from pydantic import BaseModel, HttpUrl
+from schemas.time_point import TimePoint
+from schemas.area_of_interest import AreaOfInterestSchema
 
-class TimePoint(BaseModel):
-    value: datetime
-    format: str
+class OperationalIntentState(str, Enum):
+    ACCEPTED = "Accepted"
+    ACTIVATED = "Activated"
+    NONCONFORMING = "Nonconforming"
+    DELETED = "Deleted"
 
-class AreaOfInterestSchema(BaseModel):
-    volume: Any
-    time_start: TimePoint
-    time_end: TimePoint
+class OperationalIntentUSSAvailability(str, Enum):
+    UNKNOWN = "Unknown"
 
 class OperationalIntentDetails(BaseModel):
     volumes: List[AreaOfInterestSchema]
-    off_nominela_volumes: List[Any]
+    off_nominal_volumes: List[Any]
     priority: int
+
+class OperationalIntentReference(BaseModel):
+    id: UUID
+    flight_type: str
+    manager: str
+    uss_availability: OperationalIntentUSSAvailability
+    version: int
+    state: OperationalIntentState
+    ovn: str
+    time_start: TimePoint
+    time_end: TimePoint
+    uss_base_url: HttpUrl
+    subscription_id: UUID
 
 class OperationalIntentSchema(BaseModel):
     reference: OperationalIntentReference

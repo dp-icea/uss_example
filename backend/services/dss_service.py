@@ -13,7 +13,7 @@ from schemas.operational_intent import AreaOfInterestSchema
 from schemas.flight_type import FlightType
 from schemas.error import ResponseError
 from schemas.constraints import ConstraintQueryResponse
-from schemas.operational_intent_reference import OperationCreateResponse, OperationQueryResponse, OperationCreateRequest, NewSubscription
+from schemas.operational_intent_reference import OperationCreateResponse, OperationQueryResponse, OperationCreateRequest, NewSubscription, OperationDeleteResponse, OperationGetResponse
 
 class OperationalIntentState(str, Enum):
     """
@@ -35,6 +35,7 @@ class DSSService:
         await self._client.aclose()
 
     async def query_constraint_references(self, area_of_interest: AreaOfInterestSchema) -> ConstraintQueryResponse:
+            
         """
         Query all constraint references from the DSS.
         """
@@ -134,7 +135,7 @@ class DSSService:
 
         return operational_intent
 
-    async def get_operational_intent_reference(self, entity_id: UUID) -> Any:
+    async def get_operational_intent_reference(self, entity_id: UUID) -> OperationGetResponse:
         """
         Get the operational intent reference from the DSS.
         """
@@ -154,6 +155,27 @@ class DSSService:
                 ).model_dump(mode="json"),
             )
 
-        return response.json() 
+        return OperationGetResponse.model_validate(response.json())
 
+    async def delete_operational_intent_reference(self, entity_id: UUID, ovn: str) -> OperationDeleteResponse:
+        """
+        Delete the operational intent reference from the DSS.
+        """
+        response = await self._client.request(
+            "delete",
+            f"/operational_intent_references/{entity_id}/{ovn}",
+            scope=Scope.STRATEGIC_COORDINATION,
+        )
+
+        if response.status_code != HTTPStatus.OK.value:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=ResponseError(
+                    message="Error deleting operational intent reference in the DSS.",
+                    data=response.json(),
+                ).model_dump(mode="json"),
+            )
+
+        
+        return OperationDeleteResponse.model_validate(response.json())
 
