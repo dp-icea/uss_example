@@ -10,7 +10,6 @@ from config.config import Settings
 from config.config import Settings
 from services.auth_service import Scope, DSS_AUD
 from services.auth_client import AuthClient
-from schemas.operational_intent import AreaOfInterestSchema
 from schemas.flight_type import FlightType
 from schemas.error import ResponseError
 from schemas.constraints import ConstraintQueryResponse
