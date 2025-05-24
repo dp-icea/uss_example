@@ -6,12 +6,13 @@ from motor.motor_asyncio import AsyncIOMotorClient
 import models as models
 
 class Settings(BaseSettings):
-
     DATABASE_URL: Optional[str] = None
     AUTH_URL: Optional[str] = None
     AUTH_KEY: Optional[str] = None
     DSS_URL: Optional[str] = None
     DOMAIN: Optional[str] = None
+    DSS_PEM: Optional[str] = None
+    MANAGER: Optional[str] = None
 
     class Config:
         env_file = f".env.{os.getenv('ENV', 'dev')}"

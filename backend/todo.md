@@ -8,15 +8,15 @@ X Request information on a flight plan
     X Flight area details
     - Authorization
     - Telemetry
-- Inform changes in a flight plan area (Constraints or other flight plans)
-    - Authenticate request made by another USS
-    - Delete the flight in the DSS
-    - Change local flight status to Deleted
+X Inform changes in a flight plan area (Constraints or other flight plans)
+    X Authenticate request made by another USS
+    X Delete the flight in the DSS
+    X Change local flight status to Deleted
 - Start the flight
 
 USS to USS
-- Add token generation
-- Add token verification with private key
+X Add token generation
+X Add token verification with private key
 
 Subscription
 - Add subscription to an area
