@@ -13,7 +13,7 @@ from schemas.operational_intent import AreaOfInterestSchema
 from schemas.flight_type import FlightType
 from schemas.error import ResponseError
 from schemas.constraints import ConstraintQueryResponse
-from schemas.operational_intent_reference import OperationCreateResponse, OperationQueryResponse, OperationCreateRequest, NewSubscription, OperationDeleteResponse, OperationGetResponse
+from schemas.operational_intent_reference import OperationCreateResponse, OperationQueryResponse, OperationCreateRequest, NewSubscription, OperationDeleteResponse, OperationGetResponse, OperationUpdateRequest, OperationUpdateResponse
 
 class OperationalIntentState(str, Enum):
     """
@@ -178,4 +178,6 @@ class DSSService:
 
         
         return OperationDeleteResponse.model_validate(response.json())
+
+    async def update_operational_intent_reference(
 

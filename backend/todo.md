@@ -18,6 +18,11 @@ USS to USS
 X Add token generation
 X Add token verification with private key
 
+Constraints
+- Add constraints
+- Remove constraints
+- Get information from constraints
+
 Subscription
 - Add subscription to an area
 - When handling operational intent delete, notify the subscribers

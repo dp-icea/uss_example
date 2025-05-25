@@ -17,7 +17,7 @@ router = APIRouter()
     "/",
     response_description="Create a new flight plan",
     response_model=Response,
-    status_code=201,
+    status_code=HTTPStatus.CREATED.value,
 )
 async def create_flight_plan(
     area_of_interest: AreaOfInterestSchema = Body(...),
@@ -83,7 +83,7 @@ async def create_flight_plan(
     "/with_conflict",
     response_description="Create a new flight plan with area conflicts",
     response_model=Response,
-    status_code=201,
+    status_code=HTTPStatus.CREATED.value,
 )
 async def create_flight_plan_with_conflict(
     area_of_interest: AreaOfInterestSchema = Body(...),

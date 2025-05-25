@@ -36,9 +36,6 @@ class OperationalIntentSchema(BaseModel):
     reference: OperationalIntentReference
     details: OperationalIntentDetails
 
-    class Settings:
-        name = "operational_intent"
-
 class OperationNotificationRequest(BaseModel):
     operational_intent_id: UUID
     operational_intent: Optional[OperationalIntentSchema]

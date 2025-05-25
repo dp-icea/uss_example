@@ -43,9 +43,7 @@ async def handle_operational_intent_notification(
         })
         return
 
-    # Update the modified operational intent values in the DSS database 
-    # operational_intent.reference = notification.operational_intent.reference
-    # operational_intent.details = notification.operational_intent.details
+    # Update the modified operational intent values in the USS database 
     await operational_intent.set({
         "reference": notification.operational_intent.reference,
         "details": notification.operational_intent.details,
