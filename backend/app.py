@@ -33,7 +33,6 @@ async def catch_exceptions_middleware(request: Request, call_next):
                 "data": str(e)},
         )
 
-# app.include_router(OperationalIntentsRouter, tags=["Operational Intents"], prefix="/uss/v1/operational_intents", dependencies=[Depends(AuthCheck())])
 app.include_router(OperationalIntentsRouter, tags=["Operational Intents"], prefix="/uss/v1/operational_intents", dependencies=[Depends(AuthCheck())])
 app.include_router(FlightPlanRouter, tags=["Flight Plan"], prefix="/uss/v1/flight_plan")
 

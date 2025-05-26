@@ -8,8 +8,7 @@ from pydantic import BaseModel, HttpUrl
 from models.operational_intent import OperationalIntentModel
 from config.config import Settings
 from config.config import Settings
-from services.auth_service import Scope, DSS_AUD
-from services.auth_client import AuthClient
+from services.auth_service import Scope, AuthAsyncClient
 from schemas.flight_type import FlightType
 from schemas.error import ResponseError
 from schemas.constraints import ConstraintQueryResponse
@@ -27,7 +26,7 @@ class USSService:
         if not self._manager:
             raise ValueError("Manager must be provided when initiating an object of USSService.")
 
-        self._client = AuthClient(aud=self._manager, base_url=self._base_url)
+        self._client = AuthAsyncClient(aud=self._manager, base_url=self._base_url)
 
     async def close(self):
         await self._client.aclose()

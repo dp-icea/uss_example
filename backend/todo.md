@@ -6,8 +6,8 @@ X Register flight plan
     X Register a flight with constraint
 X Request information on a flight plan
     X Flight area details
-    - Authorization
-    - Telemetry
+    ? Authorization
+    ? Telemetry
 X Inform changes in a flight plan area (Constraints or other flight plans)
     X Authenticate request made by another USS
     X Delete the flight in the DSS
@@ -17,6 +17,14 @@ X Inform changes in a flight plan area (Constraints or other flight plans)
 USS to USS
 X Add token generation
 X Add token verification with private key
+
+Refactoring
+- Improve the AuthClient. Make it inherit the httpx.Auth instead of httpx.AsyncClient
+- Way to store and use the Schemas
+    - Improve how to use the post body (parameters in the route handler function?)
+    - Improve the file structure
+- Improve the database models
+- Improve crud operations with the database (in the controllers)
 
 Constraints
 - Add constraints

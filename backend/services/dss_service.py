@@ -1,4 +1,5 @@
 from http import HTTPStatus
+import httpx
 from typing import Any, List
 from enum import Enum
 from uuid import UUID
@@ -7,8 +8,7 @@ from fastapi import HTTPException
 from pydantic import BaseModel, HttpUrl
 from config.config import Settings
 from config.config import Settings
-from services.auth_service import Scope, DSS_AUD
-from services.auth_client import AuthClient
+from services.auth_service import Scope, Audition, ServiceTokenMiddleware, AuthAsyncClient
 from schemas.operational_intent import AreaOfInterestSchema
 from schemas.flight_type import FlightType
 from schemas.error import ResponseError
@@ -29,7 +29,7 @@ class DSSService:
         if not self._base_url:
             raise ValueError("DSS_URL must be set in the environment variables.")
 
-        self._client = AuthClient(aud=DSS_AUD, base_url=self._base_url)
+        self._client = AuthAsyncClient(base_url=self._base_url, aud=Audition.DSS.value)
 
     async def close(self):
         await self._client.aclose()
@@ -48,7 +48,7 @@ class DSSService:
             "/constraint_references/query",
             scope=Scope.CONSTRAINT_PROCESSING,
             json=body,
-        )
+        )    
 
         if response.status_code != HTTPStatus.OK.value:
             raise HTTPException(
@@ -179,5 +179,4 @@ class DSSService:
         
         return OperationDeleteResponse.model_validate(response.json())
 
-    async def update_operational_intent_reference(
 

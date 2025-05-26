@@ -1,5 +1,7 @@
 import httpx
 import jwt
+from typing import Any
+from http import HTTPStatus
 from fastapi import HTTPException
 from datetime import datetime
 from threading import Lock
@@ -7,12 +9,73 @@ from schemas.error import ResponseError
 from config.config import Settings
 from enum import Enum
 
-DSS_AUD = "core-service"
+class Audition(str, Enum):
+    DSS = "core-service"
 
 class Scope(str, Enum):
     CONSTRAINT_PROCESSING = "utm.constraint_processing"
     STRATEGIC_COORDINATION = "utm.strategic_coordination"
     CONSTRAINT_MANAGEMENT = "utm.constraint_management"
+
+class AuthAsyncClient(httpx.AsyncClient):
+    """
+    Custom HTTP client for authentication.
+    """
+    def __init__(self, aud: str, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self._aud = aud
+    
+    async def request(self, method: str, url: httpx.URL | str, **kwargs: Any) -> httpx.Response:
+        scope = kwargs.pop("scope", None)
+        
+        if scope is None:
+            raise ValueError("Scope must be provided in the request for authentication.")
+
+        try:
+            return await super().request(
+                method,
+                url,
+                auth=ServiceTokenMiddleware(
+                    aud=self._aud,
+                    scope=scope
+                ),
+                **kwargs
+            )
+        except ConnectionRefusedError as e:
+            raise HTTPException(
+                status_code=HTTPStatus.SERVICE_UNAVAILABLE.value,
+                detail=ResponseError(
+                    message="Connection refused. The service might be down.",
+                    data=str(e),
+                ).model_dump(mode="json"),
+            )
+        except httpx.RequestError as e:
+            raise HTTPException(
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR.value,
+                detail=ResponseError(
+                    message="Request error occurred.",
+                    data=str(e),
+                ).model_dump(mode="json"),
+            )
+
+class ServiceTokenMiddleware(httpx.Auth):
+    def __init__(self, aud: str, scope: Scope) -> None:
+        self._aud = aud
+        self._scope = scope
+
+    def sync_auth_flow(self, request: httpx.Request):
+        raise RuntimeError("This middleware is designed for asynchronous use only. Use async_auth_flow instead.")
+
+    async def async_auth_flow(self, request: httpx.Request):
+        auth = AuthService.get_instance()
+        token = await auth.get_token(aud=self._aud, scope=self._scope)
+        request.headers["Authorization"] = f"Bearer {token}"
+        response = yield request
+        if response.status_code in (HTTPStatus.UNAUTHORIZED, HTTPStatus.FORBIDDEN):
+            await auth.refresh_token(aud=self._aud, scope=self._scope)
+            token = auth.get_token(aud=self._aud, scope=self._scope)
+            request.headers["Authorization"] = f"Bearer {token}"
+            yield request
 
 class AuthService:
     _instance = None
