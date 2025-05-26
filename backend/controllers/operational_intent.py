@@ -3,6 +3,8 @@ from http import HTTPStatus
 from uuid import UUID
 
 from models.operational_intent import OperationalIntentModel
+from schemas.operational_intent import OperationalIntentSchema
+from schema_types.operational_intent import OperationalIntentState
 
 async def entity_id_exists(entity_id: UUID) -> bool:
     """
@@ -43,4 +45,15 @@ async def delete_operational_intent(entity_id: UUID) -> None:
         )
 
     await operational_intent.delete()
+
+async def update_operational_intent(entity_id: UUID, operational_intent: OperationalIntentSchema) -> OperationalIntentModel:
+    """
+    Activate the specified operational intent
+    """
+    operational_intent_model = await get_operational_intent(entity_id)
+
+    operational_intent_model.reference = operational_intent.reference
+    operational_intent_model.details = operational_intent.details
+
+    return await operational_intent_model.save()
 

@@ -2,6 +2,7 @@ from typing import Set
 from uuid import UUID
 from datetime import timedelta
 from fastapi import APIRouter
+
 from utils.parse_dict import parse_dict
 import controllers.operational_intent as operational_intent_controller
 from services.dss_service import DSSService
@@ -39,9 +40,8 @@ async def handle_operational_intent_notification(
         )
 
         # Update the operational intent state in the database
-        await operational_intent.set({
-            "reference.state": OperationalIntentState.DELETED.value,
-        })
+        operational_intent.reference.state = OperationalIntentState.DELETED
+        await operational_intent.save()
         return
 
     # Update the modified operational intent values in the USS database 

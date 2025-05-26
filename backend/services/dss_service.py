@@ -1,6 +1,7 @@
 from http import HTTPStatus
 from typing import List
 from uuid import UUID
+from pprint import pprint
 from fastapi import HTTPException
 from pydantic import HttpUrl
 
@@ -10,7 +11,9 @@ from services.auth_service import AuthAsyncClient
 from schema_types.auth import Audition, Scope
 from schema_types.flight import FlightType
 from schema_types.operational_intent import OperationalIntentState
-from schemas.operational_intent import AreaOfInterestSchema
+from schemas.area_of_interest import AreaOfInterestSchema
+from schemas.operational_intent import OperationalIntentSchema
+from schemas.subscription import NewSubscription
 from schemas.error import ResponseError
 from schemas.constraint_reference import (
     ConstraintReferenceQueryResponse,
@@ -19,11 +22,12 @@ from schemas.constraint_reference import (
 from schemas.operational_intent_reference import (
     OperationalIntentReferenceQueryRequest,
     OperationalIntentReferenceQueryResponse,
-    NewSubscription,
     OperationalIntentReferenceGetResponse,
     OperationalIntentReferenceCreateRequest,
     OperationalIntentReferenceCreateResponse,
     OperationalIntentReferenceDeleteResponse,
+    OperationalIntentReferenceUpdateRequest,
+    OperationalIntentReferenceUpdateResponse
 )
 
 class DSSService:
@@ -178,4 +182,40 @@ class DSSService:
         
         return OperationalIntentReferenceDeleteResponse.model_validate(response.json())
 
+    async def update_operational_intent_reference(self, entity_id: UUID, ovn: str, operational_intent: OperationalIntentSchema) -> OperationalIntentReferenceUpdateResponse:
+        """
+        Update the operational intent reference state in the DSS.
+        """
+        body = OperationalIntentReferenceUpdateRequest(
+            extents=operational_intent.details.volumes,
+            # TODO: Verify ovns in the area
+            key=[],
+            state=operational_intent.reference.state,
+            uss_base_url=operational_intent.reference.uss_base_url,
+            new_subscription=NewSubscription(
+                uss_base_url=operational_intent.reference.uss_base_url,
+                notify_for_constraints=True,
+            ),
+            flight_type=operational_intent.reference.flight_type,
+        )
+
+        pprint(body.model_dump(mode="json"))
+
+        response = await self._client.request(
+            "put",
+            f"/operational_intent_references/{entity_id}/{ovn}",
+            scope=Scope.STRATEGIC_COORDINATION,
+            json=body.model_dump(mode="json"),
+        )
+
+        if response.status_code != HTTPStatus.OK.value:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=ResponseError(
+                    message="Error updating operational intent reference in the DSS.",
+                    data=response.json(),
+                ).model_dump(mode="json"),
+            )
+
+        return OperationalIntentReferenceUpdateResponse.model_validate(response.json())
 

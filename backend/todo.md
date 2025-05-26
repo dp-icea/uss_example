@@ -24,7 +24,7 @@ X Way to store and use the Schemas
     X Improve how to use the post body (parameters in the route handler function?)
     X Improve the file structure
 X Improve the database models
-- Improve crud operations with the database (in the controllers)
+X Improve crud operations with the database (in the controllers)
 
 Constraints
 - Add constraints

@@ -4,10 +4,7 @@ from pydantic import BaseModel, HttpUrl, model_validator
 
 from schemas.area_of_interest import AreaOfInterestSchema
 from schemas.operational_intent import OperationalIntentReferenceSchema
-
-class NewSubscription(BaseModel):
-    uss_base_url: HttpUrl
-    notify_for_constraints: bool
+from schemas.subscription import NewSubscription
 
 class OperationalIntentReferenceQueryRequest(BaseModel):
     area_of_interest: AreaOfInterestSchema
@@ -56,11 +53,12 @@ class OperationalIntentReferenceUpdateRequest(BaseModel):
             raise ValueError("Exactly one of 'subscription_id' or 'new_subscription' must be provided.")
         return values
 
+class OperationalIntentReferenceDeleteResponse(BaseModel):
+    subscribers: List[Any]
+    operational_intent_reference: OperationalIntentReferenceSchema
+
 class OperationalIntentReferenceUpdateResponse(BaseModel):
     subscribers: List[Any]
     operational_intent_reference: OperationalIntentReferenceSchema
 
-class OperationalIntentReferenceDeleteResponse(BaseModel):
-    subscribers: List[Any]
-    operational_intent_reference: OperationalIntentReferenceSchema
 

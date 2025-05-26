@@ -1,11 +1,14 @@
 from fastapi import APIRouter, Body, HTTPException
 from typing import List
-from uuid import uuid4
+from uuid import uuid4, UUID
 from http import HTTPStatus
+
+from controllers import operational_intent as operational_intent_controller
 from models.operational_intent import OperationalIntentModel
 from services.dss_service import DSSService
 from services.uss_service import USSService
-from schemas.operational_intent import OperationalIntentDetailSchema
+from schema_types.operational_intent import OperationalIntentState
+from schemas.operational_intent import OperationalIntentDetailSchema, OperationalIntentSchema
 from schemas.area_of_interest import AreaOfInterestSchema
 from schemas.response import Response
 from schemas.error import ResponseError
@@ -146,4 +149,49 @@ async def create_flight_plan_with_conflict(
         status=HTTPStatus.CREATED.value,
         message="Operational intent created successfully",
         data=create_operation.model_dump(mode="json"),
+    )
+
+@router.patch(
+    "/{entity_id}",
+    response_description="Activate the flight plan",
+    response_model=Response,
+    status_code=HTTPStatus.OK.value,
+)
+async def activate_flight_plan(
+    entity_id: UUID,
+):
+    """
+    Activate the flight plan
+    """
+
+    old_operational_intent_model = await operational_intent_controller.get_operational_intent(
+        entity_id=entity_id,
+    )
+
+    old_operational_intent = OperationalIntentSchema(
+        reference=old_operational_intent_model.reference,
+        details=old_operational_intent_model.details,
+    )
+
+    old_operational_intent.reference.state = OperationalIntentState.ACTIVATED
+
+    # TODO: Verify operational intent references in the area
+    # Need to inform the keys in the update operation
+
+    dss = DSSService()
+    await dss.update_operational_intent_reference(
+        entity_id=entity_id,
+        ovn=old_operational_intent.reference.ovn,
+        operational_intent=old_operational_intent
+    )
+
+    operational_intent = await operational_intent_controller.update_operational_intent(
+        entity_id=entity_id,
+        operational_intent=old_operational_intent,
+    )
+
+    return Response(
+        status=HTTPStatus.OK.value,
+        message="Operational intent activated successfully",
+        data=operational_intent.model_dump(mode="json"),
     )
