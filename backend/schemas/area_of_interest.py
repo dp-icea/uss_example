@@ -1,6 +1,7 @@
-from schemas.time_point import TimePoint
 from pydantic import BaseModel
 from typing import Any
+
+from schemas.time_point import TimePoint
 
 class AreaOfInterestSchema(BaseModel):
     volume: Any

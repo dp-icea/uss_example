@@ -1,20 +1,24 @@
 from typing import List, Any, Optional
 from uuid import UUID
 from pydantic import BaseModel, HttpUrl, model_validator
-from schemas.operational_intent import OperationalIntentReference
+
 from schemas.area_of_interest import AreaOfInterestSchema
-
-class OperationQueryResponse(BaseModel):
-    operational_intent_references: List[OperationalIntentReference]
-
-class OperationGetResponse(BaseModel):
-    operational_intent_reference: OperationalIntentReference
+from schemas.operational_intent import OperationalIntentReferenceSchema
 
 class NewSubscription(BaseModel):
     uss_base_url: HttpUrl
     notify_for_constraints: bool
 
-class OperationCreateRequest(BaseModel):
+class OperationalIntentReferenceQueryRequest(BaseModel):
+    area_of_interest: AreaOfInterestSchema
+
+class OperationalIntentReferenceQueryResponse(BaseModel):
+    operational_intent_references: List[OperationalIntentReferenceSchema]
+
+class OperationalIntentReferenceGetResponse(BaseModel):
+    operational_intent_reference: OperationalIntentReferenceSchema
+
+class OperationalIntentReferenceCreateRequest(BaseModel):
     extents: List[AreaOfInterestSchema]
     key: List[Any]
     state: str
@@ -31,11 +35,11 @@ class OperationCreateRequest(BaseModel):
             raise ValueError("Exactly one of 'subscription_id' or 'new_subscription' must be provided.")
         return values
 
-class OperationCreateResponse(BaseModel):
+class OperationalIntentReferenceCreateResponse(BaseModel):
     subscribers: List[Any]
-    operational_intent_reference: OperationalIntentReference
+    operational_intent_reference: OperationalIntentReferenceSchema
 
-class OperationUpdateRequest(BaseModel):
+class OperationalIntentReferenceUpdateRequest(BaseModel):
     extents: List[AreaOfInterestSchema]
     key: List[Any]
     state: str
@@ -52,11 +56,11 @@ class OperationUpdateRequest(BaseModel):
             raise ValueError("Exactly one of 'subscription_id' or 'new_subscription' must be provided.")
         return values
 
-class OperationUpdateResponse(BaseModel):
+class OperationalIntentReferenceUpdateResponse(BaseModel):
     subscribers: List[Any]
-    operational_intent_reference: OperationalIntentReference
+    operational_intent_reference: OperationalIntentReferenceSchema
 
-class OperationDeleteResponse(BaseModel):
+class OperationalIntentReferenceDeleteResponse(BaseModel):
     subscribers: List[Any]
-    operational_intent_reference: OperationalIntentReference
+    operational_intent_reference: OperationalIntentReferenceSchema
 

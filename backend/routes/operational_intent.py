@@ -5,7 +5,8 @@ from fastapi import APIRouter
 from utils.parse_dict import parse_dict
 import controllers.operational_intent as operational_intent_controller
 from services.dss_service import DSSService
-from schemas.operational_intent import OperationNotificationRequest, OperationalIntentState
+from schemas.operational_intent import OperationalIntentNotificationRequest
+from schema_types.operational_intent import OperationalIntentState
 
 router = APIRouter()
 
@@ -15,7 +16,7 @@ router = APIRouter()
     status_code=204,
 )
 async def handle_operational_intent_notification(
-    notification: OperationNotificationRequest,
+    notification: OperationalIntentNotificationRequest,
 ):
     """
     Receive notification of changed operational details

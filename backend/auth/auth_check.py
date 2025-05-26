@@ -1,11 +1,13 @@
 import jwt
+
 from http import HTTPStatus
 from fastapi import Request, HTTPException
-from config.config import Settings
-from schemas.error import ResponseError
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
+
+from config.config import Settings
+from schemas.error import ResponseError
 
 class AuthCheck(HTTPBearer):
     def __init__(self, auto_error: bool = True):
@@ -39,10 +41,6 @@ class AuthCheck(HTTPBearer):
                 key_file.read(),
                 backend=default_backend()
             )
-            print(pub_key.public_bytes(
-                encoding=serialization.Encoding.PEM,
-                format=serialization.PublicFormat.SubjectPublicKeyInfo
-            ).decode("utf-8"))
 
         try:
             jwt.decode(credentials.credentials, pub_key, audience=manager, algorithms=['RS256', ])

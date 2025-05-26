@@ -1,7 +1,8 @@
 from fastapi import HTTPException
 from http import HTTPStatus
-from models.operational_intent import OperationalIntentModel
 from uuid import UUID
+
+from models.operational_intent import OperationalIntentModel
 
 async def entity_id_exists(entity_id: UUID) -> bool:
     """

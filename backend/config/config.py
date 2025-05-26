@@ -1,9 +1,10 @@
 import os
+import models
+
 from typing import Optional
 from beanie import init_beanie
 from pydantic_settings import BaseSettings
 from motor.motor_asyncio import AsyncIOMotorClient
-import models as models
 
 class Settings(BaseSettings):
     DATABASE_URL: Optional[str] = None

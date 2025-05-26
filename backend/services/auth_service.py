@@ -5,17 +5,10 @@ from http import HTTPStatus
 from fastapi import HTTPException
 from datetime import datetime
 from threading import Lock
+
 from schemas.error import ResponseError
 from config.config import Settings
-from enum import Enum
-
-class Audition(str, Enum):
-    DSS = "core-service"
-
-class Scope(str, Enum):
-    CONSTRAINT_PROCESSING = "utm.constraint_processing"
-    STRATEGIC_COORDINATION = "utm.strategic_coordination"
-    CONSTRAINT_MANAGEMENT = "utm.constraint_management"
+from schema_types.auth import Scope
 
 class AuthAsyncClient(httpx.AsyncClient):
     """

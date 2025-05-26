@@ -2,9 +2,10 @@ from fastapi import APIRouter, Body, HTTPException
 from typing import List
 from uuid import uuid4
 from http import HTTPStatus
-from models.operational_intent import OperationalIntentModel, OperationalIntentDetails
+from models.operational_intent import OperationalIntentModel
 from services.dss_service import DSSService
 from services.uss_service import USSService
+from schemas.operational_intent import OperationalIntentDetailSchema
 from schemas.area_of_interest import AreaOfInterestSchema
 from schemas.response import Response
 from schemas.error import ResponseError
@@ -44,7 +45,7 @@ async def create_flight_plan(
         )
 
     # Verify other Operational Intents
-    query_operations = await dss.query_operational_intents(
+    query_operations = await dss.query_operational_intent_references(
         area_of_interest=area_of_interest,
     )
     if len(query_operations.operational_intent_references) != 0:
@@ -64,7 +65,7 @@ async def create_flight_plan(
      
     operation_model = OperationalIntentModel(
             reference = create_operation.operational_intent_reference,
-            details = OperationalIntentDetails(
+            details = OperationalIntentDetailSchema(
                 volumes=[area_of_interest],
                 off_nominal_volumes=[],
                 priority=0,
@@ -100,19 +101,19 @@ async def create_flight_plan_with_conflict(
 
     # Verify constraints
     dss = DSSService()
-    query_constraints = await dss.query_constraint_references(
+    constraint_references = await dss.query_constraint_references(
         area_of_interest=area_of_interest
     )
-    if len(query_constraints.constraint_references) != 0:
-        for constraint in query_constraints.constraint_references:
+    if len(constraint_references.constraint_references) != 0:
+        for constraint in constraint_references.constraint_references:
             uss = USSService(base_url=constraint.uss_base_url, manager=constraint.manager)
             original_constraint = await uss.query_operational_intent(
                 entity_id=constraint.id,
             )
-            keys.append(original_constraint.reference.ovn)
+            keys.append(original_constraint.operational_intent.reference.ovn)
 
     # Verify other Operational Intents
-    query_operations = await dss.query_operational_intents(
+    query_operations = await dss.query_operational_intent_references(
         area_of_interest=area_of_interest,
     )
     if len(query_operations.operational_intent_references) != 0:
@@ -121,7 +122,7 @@ async def create_flight_plan_with_conflict(
             original_operation = await uss.query_operational_intent(
                 entity_id=operation.id,
             )
-            keys.append(original_operation.reference.ovn)
+            keys.append(original_operation.operational_intent.reference.ovn)
 
     # Register the operational intent reference in the DSS
     create_operation = await dss.create_operational_intent(
@@ -132,7 +133,7 @@ async def create_flight_plan_with_conflict(
      
     operation_model = OperationalIntentModel(
             reference = create_operation.operational_intent_reference,
-            details = OperationalIntentDetails(
+            details = OperationalIntentDetailSchema(
                 volumes=[area_of_interest],
                 off_nominal_volumes=[],
                 priority=0,

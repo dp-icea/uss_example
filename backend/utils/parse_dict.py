@@ -1,5 +1,4 @@
 from typing import Any, Dict, List
-from pydantic import BaseModel
 
 def parse_dict(data: Dict | List, k: str) -> Any:
     """

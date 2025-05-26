@@ -1,25 +1,30 @@
 from http import HTTPStatus
-import httpx
-from typing import Any, List
-from enum import Enum
+from typing import List
 from uuid import UUID
-from threading import Lock
 from fastapi import HTTPException
-from pydantic import BaseModel, HttpUrl
-from config.config import Settings
-from config.config import Settings
-from services.auth_service import Scope, Audition, ServiceTokenMiddleware, AuthAsyncClient
-from schemas.operational_intent import AreaOfInterestSchema
-from schemas.flight_type import FlightType
-from schemas.error import ResponseError
-from schemas.constraints import ConstraintQueryResponse
-from schemas.operational_intent_reference import OperationCreateResponse, OperationQueryResponse, OperationCreateRequest, NewSubscription, OperationDeleteResponse, OperationGetResponse, OperationUpdateRequest, OperationUpdateResponse
+from pydantic import HttpUrl
 
-class OperationalIntentState(str, Enum):
-    """
-    Enum for the operational intent state.
-    """
-    ACCEPTED = "Accepted"
+from config.config import Settings
+from config.config import Settings
+from services.auth_service import AuthAsyncClient
+from schema_types.auth import Audition, Scope
+from schema_types.flight import FlightType
+from schema_types.operational_intent import OperationalIntentState
+from schemas.operational_intent import AreaOfInterestSchema
+from schemas.error import ResponseError
+from schemas.constraint_reference import (
+    ConstraintReferenceQueryResponse,
+    ConstraintReferenceQueryRequest
+)
+from schemas.operational_intent_reference import (
+    OperationalIntentReferenceQueryRequest,
+    OperationalIntentReferenceQueryResponse,
+    NewSubscription,
+    OperationalIntentReferenceGetResponse,
+    OperationalIntentReferenceCreateRequest,
+    OperationalIntentReferenceCreateResponse,
+    OperationalIntentReferenceDeleteResponse,
+)
 
 class DSSService:
     def __init__(self):
@@ -34,21 +39,21 @@ class DSSService:
     async def close(self):
         await self._client.aclose()
 
-    async def query_constraint_references(self, area_of_interest: AreaOfInterestSchema) -> ConstraintQueryResponse:
+    async def query_constraint_references(self, area_of_interest: AreaOfInterestSchema) -> ConstraintReferenceQueryResponse:
             
         """
         Query all constraint references from the DSS.
         """
-        body = {
-            "area_of_interest": area_of_interest.model_dump(mode="json"),
-        }
+        body = ConstraintReferenceQueryRequest(
+            area_of_interest=area_of_interest,
+        )
 
         response = await self._client.request(
             "post",
             "/constraint_references/query",
             scope=Scope.CONSTRAINT_PROCESSING,
-            json=body,
-        )    
+            json=body.model_dump(mode="json"),
+        )
 
         if response.status_code != HTTPStatus.OK.value:
             raise HTTPException(
@@ -59,23 +64,21 @@ class DSSService:
                 ).model_dump(mode="json"),
             )
 
-        constraint = ConstraintQueryResponse.model_validate(response.json())
+        return ConstraintReferenceQueryResponse.model_validate(response.json())
 
-        return constraint
-
-    async def query_operational_intents(self, area_of_interest: BaseModel) -> OperationQueryResponse:
+    async def query_operational_intent_references(self, area_of_interest: AreaOfInterestSchema) -> OperationalIntentReferenceQueryResponse:
         """
         Query all operational intents from the DSS.
         """
-        body = {
-            "area_of_interest": area_of_interest.model_dump(mode="json"),
-        }
+        body = OperationalIntentReferenceQueryRequest(
+                area_of_interest=area_of_interest,
+        )
 
         response = await self._client.request(
             "post",
             "/operational_intent_references/query",
             scope=Scope.STRATEGIC_COORDINATION,
-            json=body,
+            json=body.model_dump(mode="json"),
         )
 
         if response.status_code != HTTPStatus.OK.value:
@@ -87,11 +90,9 @@ class DSSService:
                 ).model_dump(mode="json"),
             )
 
-        operational_intents = OperationQueryResponse.model_validate(response.json())
+        return OperationalIntentReferenceQueryResponse.model_validate(response.json())
 
-        return operational_intents
-
-    async def create_operational_intent(self, entity_id: UUID, area_of_interest: AreaOfInterestSchema, keys: List[str]=[]) -> OperationCreateResponse:
+    async def create_operational_intent(self, entity_id: UUID, area_of_interest: AreaOfInterestSchema, keys: List[str]=[]) -> OperationalIntentReferenceCreateResponse:
         """
         Create a new operational intent in the DSS.
         """
@@ -100,7 +101,7 @@ class DSSService:
         if not app_domain:
             raise ValueError("DOMAIN must be set in the environment variables.")
 
-        body = OperationCreateRequest(
+        body = OperationalIntentReferenceCreateRequest(
             extents=[
                 area_of_interest
             ],
@@ -131,11 +132,9 @@ class DSSService:
                 ).model_dump(mode="json"),
             )
 
-        operational_intent = OperationCreateResponse.model_validate(response.json())
+        return OperationalIntentReferenceCreateResponse.model_validate(response.json())
 
-        return operational_intent
-
-    async def get_operational_intent_reference(self, entity_id: UUID) -> OperationGetResponse:
+    async def get_operational_intent_reference(self, entity_id: UUID) -> OperationalIntentReferenceGetResponse:
         """
         Get the operational intent reference from the DSS.
         """
@@ -155,9 +154,9 @@ class DSSService:
                 ).model_dump(mode="json"),
             )
 
-        return OperationGetResponse.model_validate(response.json())
+        return OperationalIntentReferenceGetResponse.model_validate(response.json())
 
-    async def delete_operational_intent_reference(self, entity_id: UUID, ovn: str) -> OperationDeleteResponse:
+    async def delete_operational_intent_reference(self, entity_id: UUID, ovn: str) -> OperationalIntentReferenceDeleteResponse:
         """
         Delete the operational intent reference from the DSS.
         """
@@ -177,6 +176,6 @@ class DSSService:
             )
 
         
-        return OperationDeleteResponse.model_validate(response.json())
+        return OperationalIntentReferenceDeleteResponse.model_validate(response.json())
 
 
