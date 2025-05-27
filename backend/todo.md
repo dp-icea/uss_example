@@ -29,12 +29,11 @@ X Improve the database models
 X Improve crud operations with the database (in the controllers)
 
 Constraints
-- Constraint Management
+X Constraint Management
     X Add constraints
-    - Remove constraints
-- Constraint Endpoints
-    - Get information from constraints
-    - Handle changes in the constraints
+X Constraint Endpoints
+    X Get information from constraints
+    X Handle changes in the constraints
 - Refactor similarities OIR and CR
 
 Subscription

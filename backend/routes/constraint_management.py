@@ -26,7 +26,7 @@ async def add_constraint(
     entity_id = uuid4()
 
     dss = DSSService()
-    constraint_created = await dss.create_constraint(
+    constraint_created = await dss.create_constraint_reference(
         entity_id=entity_id,
         areas_of_interest=areas_of_interest,
     )

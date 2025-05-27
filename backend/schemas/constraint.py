@@ -29,3 +29,7 @@ class ConstraintSchema(BaseModel):
     reference: ConstraintReferenceSchema
     details: ConstraintDetailSchema
 
+class ConstraintNotificationRequest(BaseModel):
+    constraint_id: UUID
+    constraint: Optional[ConstraintSchema]
+    subscriptions: List[Any]

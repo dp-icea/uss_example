@@ -18,6 +18,7 @@ from schemas.operational_intent import OperationalIntentSchema
 from schemas.subscription import NewSubscription
 from schemas.error import ResponseError
 from schemas.constraint_reference import (
+    ConstraintReferenceDeleteResponse,
     ConstraintReferenceQueryResponse,
     ConstraintReferenceQueryRequest,
     ConstraintReferenceCreateRequest,
@@ -223,7 +224,7 @@ class DSSService:
 
         return OperationalIntentReferenceUpdateResponse.model_validate(response.json())
 
-    async def create_constraint(self, entity_id: UUID, areas_of_interest: List[AreaOfInterestSchema]) -> ConstraintReferenceCreateResponse:
+    async def create_constraint_reference(self, entity_id: UUID, areas_of_interest: List[AreaOfInterestSchema]) -> ConstraintReferenceCreateResponse:
         """
         Create a new constraint in the DSS.
         """
@@ -253,6 +254,25 @@ class DSSService:
                 ).model_dump(mode="json"),
             )
 
-        pprint(response.json())
-
         return ConstraintReferenceCreateResponse.model_validate(response.json())
+
+    async def delete_constraint_reference(self, entity_id: UUID, ovn: str) -> ConstraintReferenceDeleteResponse:
+        """
+        Delete the constraint reference from the DSS.
+        """
+        response = await self._client.request(
+            "delete",
+            f"/constraint_references/{entity_id}/{ovn}",
+            scope=Scope.CONSTRAINT_MANAGEMENT,
+        )
+
+        if response.status_code != HTTPStatus.OK.value:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=ResponseError(
+                    message="Error deleting constraint reference in the DSS.",
+                    data=response.json(),
+                ).model_dump(mode="json"),
+            )
+
+        return ConstraintReferenceDeleteResponse.model_validate(response.json())

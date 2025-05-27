@@ -3,6 +3,9 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException
 
 from controllers import constraint as constraint_controller
+from schemas.constraint import ConstraintNotificationRequest
+from services.dss_service import DSSService
+from schema_types.constraint import ConstraintState
 
 router = APIRouter()
 
@@ -11,10 +14,32 @@ router = APIRouter()
     response_description="Receive notification of changed constraints",
     status_code=HTTPStatus.NO_CONTENT.value,
 )
-async def handle_constraint_notification():
-    raise HTTPException(
-        status_code=HTTPStatus.NOT_IMPLEMENTED.value,
-        detail="Constraint notification handling is not implemented yet."
+async def handle_constraint_notification(
+    notification: ConstraintNotificationRequest,
+):
+    # Verify if the Constraint should be deleted
+    if notification.constraint is None:
+        constraint = await constraint_controller.get_constraint(
+            entity_id=notification.constraint_id,
+        )
+        
+        # Delete the constraint from the DSS database
+        dss = DSSService()
+        _ = await dss.delete_constraint_reference(
+            entity_id=constraint.reference.id,
+            ovn=constraint.reference.ovn,
+        )
+
+        await constraint_controller.delete_constraint(
+            entity_id=constraint.reference.id,
+        )
+
+        return
+
+    # Update the modified constraint values in the USS database
+    await constraint_controller.update_constraint(
+        entity_id=notification.constraint_id,
+        new_constraint=notification.constraint,
     )
 
 @router.get(

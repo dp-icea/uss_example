@@ -3,6 +3,7 @@ from http import HTTPStatus
 from uuid import UUID
 
 from models.constraint import ConstraintModel
+from schemas.constraint import ConstraintSchema
 
 async def get_constraint(entity_id: UUID) -> ConstraintModel:
     """
@@ -37,3 +38,38 @@ async def create_constraint(constraint: ConstraintModel) -> ConstraintModel:
     await constraint.save()
 
     return constraint
+
+async def delete_constraint(entity_id: UUID) -> None:
+    """
+    Delete a constraint from the USS database.
+    """
+    constraint = await get_constraint(entity_id)
+
+    if constraint is None:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND.value,
+            detail="Constraint not found in the USS database"
+        )
+
+    await constraint.delete()
+
+async def update_constraint(entity_id: UUID, new_constraint: ConstraintSchema) -> ConstraintModel:
+    """
+    Update an existing constraint in the USS database.
+    """
+    constraint = await get_constraint(entity_id)
+
+    if constraint is None:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND.value,
+            detail="Constraint not found in the USS database"
+        )
+
+    # Update the constraint details
+    constraint.details = new_constraint.details
+    constraint.reference = new_constraint.reference
+
+    await constraint.save()
+
+    return constraint
+    

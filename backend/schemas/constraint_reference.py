@@ -22,3 +22,7 @@ class ConstraintReferenceCreateRequest(BaseModel):
 class ConstraintReferenceCreateResponse(BaseModel):
     subscribers: List[Any]
     constraint_reference: ConstraintReferenceSchema
+
+class ConstraintReferenceDeleteResponse(BaseModel):
+    subscribers: List[Any]
+    constraint_reference: ConstraintReferenceSchema
