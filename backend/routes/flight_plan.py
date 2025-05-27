@@ -179,11 +179,13 @@ async def activate_flight_plan(
     # Need to inform the keys in the update operation
 
     dss = DSSService()
-    await dss.update_operational_intent_reference(
+    operational_intent_updated = await dss.update_operational_intent_reference(
         entity_id=entity_id,
         ovn=old_operational_intent.reference.ovn,
         operational_intent=old_operational_intent
     )
+
+    old_operational_intent.reference.ovn = operational_intent_updated.operational_intent_reference.ovn
 
     operational_intent = await operational_intent_controller.update_operational_intent(
         entity_id=entity_id,

@@ -13,6 +13,8 @@ X Inform changes in a flight plan area (Constraints or other flight plans)
     X Delete the flight in the DSS
     X Change local flight status to Deleted
 - Start the flight
+    X Start the flight without obstacles
+    - Start the flight with obstacles
 
 USS to USS
 X Add token generation
