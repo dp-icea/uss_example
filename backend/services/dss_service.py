@@ -11,6 +11,7 @@ from services.auth_service import AuthAsyncClient
 from schema_types.auth import Audition, Scope
 from schema_types.flight import FlightType
 from schema_types.operational_intent import OperationalIntentState
+from schema_types.ovn import ovn
 from schemas.area_of_interest import AreaOfInterestSchema
 from schemas.operational_intent import OperationalIntentSchema
 from schemas.subscription import NewSubscription
@@ -182,14 +183,14 @@ class DSSService:
         
         return OperationalIntentReferenceDeleteResponse.model_validate(response.json())
 
-    async def update_operational_intent_reference(self, entity_id: UUID, ovn: str, operational_intent: OperationalIntentSchema) -> OperationalIntentReferenceUpdateResponse:
+    async def update_operational_intent_reference(self, entity_id: UUID, ovn: str, keys:List[ovn], operational_intent: OperationalIntentSchema) -> OperationalIntentReferenceUpdateResponse:
         """
         Update the operational intent reference state in the DSS.
         """
         body = OperationalIntentReferenceUpdateRequest(
             extents=operational_intent.details.volumes,
             # TODO: Verify ovns in the area
-            key=[],
+            key=keys,
             state=operational_intent.reference.state,
             uss_base_url=operational_intent.reference.uss_base_url,
             new_subscription=NewSubscription(

@@ -3,6 +3,7 @@ from uuid import UUID
 from pydantic import BaseModel, HttpUrl, model_validator
 
 from schemas.area_of_interest import AreaOfInterestSchema
+from schema_types.ovn import ovn
 from schemas.operational_intent import OperationalIntentReferenceSchema
 from schemas.subscription import NewSubscription
 
@@ -17,7 +18,7 @@ class OperationalIntentReferenceGetResponse(BaseModel):
 
 class OperationalIntentReferenceCreateRequest(BaseModel):
     extents: List[AreaOfInterestSchema]
-    key: List[Any]
+    key: List[ovn]
     state: str
     uss_base_url: HttpUrl
     subscription_id: Optional[UUID] = None
@@ -38,7 +39,7 @@ class OperationalIntentReferenceCreateResponse(BaseModel):
 
 class OperationalIntentReferenceUpdateRequest(BaseModel):
     extents: List[AreaOfInterestSchema]
-    key: List[Any]
+    key: List[ovn]
     state: str
     uss_base_url: HttpUrl
     subscription_id: Optional[UUID] = None
