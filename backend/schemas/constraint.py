@@ -18,12 +18,12 @@ class ConstraintDetailSchema(BaseModel):
 class ConstraintReferenceSchema(BaseModel):
     id: UUID
     manager: str
-    time_start: TimePoint
     time_end: TimePoint
+    time_start: TimePoint
     uss_availability: ConstraintUSSAvailability
+    uss_base_url: HttpUrl
     version: int
     ovn: str
-    uss_base_url: HttpUrl
 
 class ConstraintSchema(BaseModel):
     reference: ConstraintReferenceSchema

@@ -17,6 +17,8 @@ router = APIRouter()
 async def handle_constraint_notification(
     notification: ConstraintNotificationRequest,
 ):
+    dss = DSSService()
+
     # Verify if the Constraint should be deleted
     if notification.constraint is None:
         constraint = await constraint_controller.get_constraint(
@@ -24,7 +26,6 @@ async def handle_constraint_notification(
         )
         
         # Delete the constraint from the DSS database
-        dss = DSSService()
         _ = await dss.delete_constraint_reference(
             entity_id=constraint.reference.id,
             ovn=constraint.reference.ovn,
@@ -36,10 +37,20 @@ async def handle_constraint_notification(
 
         return
 
+    updated_constraint = notification.constraint
+
+    constraint_reference_updated = await dss.update_constraint_reference(
+        entity_id=notification.constraint_id,
+        ovn=updated_constraint.reference.ovn,
+        areas_of_interest=updated_constraint.details.volumes,
+    )
+
+    updated_constraint.reference = constraint_reference_updated.constraint_reference
+
     # Update the modified constraint values in the USS database
     await constraint_controller.update_constraint(
         entity_id=notification.constraint_id,
-        new_constraint=notification.constraint,
+        new_constraint=updated_constraint,
     )
 
 @router.get(

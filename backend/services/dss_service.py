@@ -22,7 +22,9 @@ from schemas.constraint_reference import (
     ConstraintReferenceQueryResponse,
     ConstraintReferenceQueryRequest,
     ConstraintReferenceCreateRequest,
-    ConstraintReferenceCreateResponse
+    ConstraintReferenceCreateResponse,
+    ConstraintReferenceUpdateRequest,
+    ConstraintReferenceUpdateResponse,
 )
 from schemas.operational_intent_reference import (
     OperationalIntentReferenceQueryRequest,
@@ -233,6 +235,7 @@ class DSSService:
 
         if not app_domain:
             raise ValueError("DOMAIN must be set in the environment variables.")
+            
         body = ConstraintReferenceCreateRequest(
             extents=areas_of_interest,
             uss_base_url=HttpUrl(app_domain),
@@ -276,3 +279,37 @@ class DSSService:
             )
 
         return ConstraintReferenceDeleteResponse.model_validate(response.json())
+
+    async def update_constraint_reference(self, entity_id: UUID, ovn: str, areas_of_interest: List[AreaOfInterestSchema]) -> ConstraintReferenceUpdateResponse:
+        """
+        Update the constraint reference in the DSS.
+        """
+
+        app_domain = Settings().DOMAIN
+
+        if not app_domain:
+            raise ValueError("DOMAIN must be set in the environment variables.")
+
+        body = ConstraintReferenceUpdateRequest(
+            extents=areas_of_interest,
+            uss_base_url=HttpUrl(app_domain),
+        )
+
+        response = await self._client.request(
+            "put",
+            f"/constraint_references/{entity_id}/{ovn}",
+            scope=Scope.CONSTRAINT_MANAGEMENT,
+            json=body.model_dump(mode="json"),
+        )
+
+        if response.status_code != HTTPStatus.OK.value:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=ResponseError(
+                    message="Error updating constraint reference in the DSS.",
+                    data=response.json(),
+                ).model_dump(mode="json"),
+            )
+
+        return ConstraintReferenceUpdateResponse.model_validate(response.json())
+

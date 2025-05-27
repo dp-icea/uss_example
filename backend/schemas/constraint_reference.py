@@ -26,3 +26,12 @@ class ConstraintReferenceCreateResponse(BaseModel):
 class ConstraintReferenceDeleteResponse(BaseModel):
     subscribers: List[Any]
     constraint_reference: ConstraintReferenceSchema
+
+class ConstraintReferenceUpdateRequest(BaseModel):
+    extents: List[AreaOfInterestSchema]
+    uss_base_url: HttpUrl
+
+class ConstraintReferenceUpdateResponse(BaseModel):
+    subscribers: List[Any]
+    constraint_reference: ConstraintReferenceSchema
+
