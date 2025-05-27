@@ -27,12 +27,12 @@ async def handle_operational_intent_notification(
     # Check if the entity ID existsds
     dss = DSSService()
 
-    operational_intent = await operational_intent_controller.get_operational_intent(
-        entity_id=notification.operational_intent_id,
-    )
- 
     # Verify if the Operation should be deleted
     if notification.operational_intent is None:
+        operational_intent = await operational_intent_controller.get_operational_intent(
+            entity_id=notification.operational_intent_id,
+        )
+
         # Delete the opreational intent from the DSS database
         # TODO: Notify the subscribers from the deleted operation area
         _ = await dss.delete_operational_intent_reference(
@@ -40,16 +40,27 @@ async def handle_operational_intent_notification(
             ovn=operational_intent.reference.ovn,
         )
 
-        # Update the operational intent state in the database
-        operational_intent.reference.state = OperationalIntentState.DELETED
-        await operational_intent.save()
+        await operational_intent_controller.delete_operational_intent(
+            entity_id=operational_intent.reference.id,
+        )
+
         return
 
-    # Update the modified operational intent values in the USS database 
-    await operational_intent.set({
-        "reference": notification.operational_intent.reference,
-        "details": notification.operational_intent.details,
-    })
+    updated_operational_intent = notification.operational_intent
+
+    operational_intent_reference_updated = await dss.update_operational_intent_reference(
+        entity_id=notification.operational_intent_id,
+        ovn=updated_operational_intent.reference.ovn,
+        keys=[],
+        operational_intent=updated_operational_intent,
+    )
+
+    updated_operational_intent.reference = operational_intent_reference_updated.operational_intent_reference
+
+    await operational_intent_controller.update_operational_intent(
+        entity_id=notification.operational_intent_id,
+        operational_intent=updated_operational_intent,
+    )
 
 
 # TODO: Add a Depends function to validate the aud parameter in the JWT tokenm 

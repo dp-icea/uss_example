@@ -25,7 +25,7 @@ async def handle_constraint_notification(
             entity_id=notification.constraint_id,
         )
         
-        # Delete the constraint from the DSS database
+        # TODO: Handle delete subscription notification here
         _ = await dss.delete_constraint_reference(
             entity_id=constraint.reference.id,
             ovn=constraint.reference.ovn,
@@ -42,7 +42,7 @@ async def handle_constraint_notification(
     constraint_reference_updated = await dss.update_constraint_reference(
         entity_id=notification.constraint_id,
         ovn=updated_constraint.reference.ovn,
-        areas_of_interest=updated_constraint.details.volumes,
+        constraint=updated_constraint,
     )
 
     updated_constraint.reference = constraint_reference_updated.constraint_reference

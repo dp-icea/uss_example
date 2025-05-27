@@ -8,6 +8,7 @@ from pydantic import HttpUrl
 
 from config.config import Settings
 from config.config import Settings
+from schemas.constraint import ConstraintSchema
 from services.auth_service import AuthAsyncClient
 from schema_types.auth import Audition, Scope
 from schema_types.flight import FlightType
@@ -206,8 +207,6 @@ class DSSService:
             flight_type=operational_intent.reference.flight_type,
         )
 
-        pprint(body.model_dump(mode="json"))
-
         response = await self._client.request(
             "put",
             f"/operational_intent_references/{entity_id}/{ovn}",
@@ -280,7 +279,7 @@ class DSSService:
 
         return ConstraintReferenceDeleteResponse.model_validate(response.json())
 
-    async def update_constraint_reference(self, entity_id: UUID, ovn: str, areas_of_interest: List[AreaOfInterestSchema]) -> ConstraintReferenceUpdateResponse:
+    async def update_constraint_reference(self, entity_id: UUID, ovn: str, constraint: ConstraintSchema) -> ConstraintReferenceUpdateResponse:
         """
         Update the constraint reference in the DSS.
         """
@@ -291,7 +290,7 @@ class DSSService:
             raise ValueError("DOMAIN must be set in the environment variables.")
 
         body = ConstraintReferenceUpdateRequest(
-            extents=areas_of_interest,
+            extents=constraint.details.volumes,
             uss_base_url=HttpUrl(app_domain),
         )
 

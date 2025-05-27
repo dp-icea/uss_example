@@ -69,7 +69,5 @@ async def update_constraint(entity_id: UUID, new_constraint: ConstraintSchema) -
     constraint.details = new_constraint.details
     constraint.reference = new_constraint.reference
 
-    await constraint.save()
-
-    return constraint
+    return await constraint.save()
     

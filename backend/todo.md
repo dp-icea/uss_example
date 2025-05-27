@@ -35,7 +35,6 @@ X Constraint Management
 X Constraint Endpoints
     X Get information from constraints
     X Handle changes in the constraints
-- Refactor similarities OIR and CR
 
 Subscription
 - Add subscription to an area
@@ -48,4 +47,8 @@ User Auth
     - Add User token generation
     - Retrieve user information from a flight plan
 - User Websocket to transmit real-time information in active flights
+
+Refactor
+- Refactor similarities OIR and CR
+
 ```
