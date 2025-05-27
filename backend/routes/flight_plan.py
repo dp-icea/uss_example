@@ -111,6 +111,7 @@ async def create_flight_plan(
             ),
     )
 
+    # TODO: Change this to the controller
     await operation_model.create()
 
     return Response(

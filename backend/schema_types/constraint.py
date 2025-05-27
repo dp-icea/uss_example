@@ -6,6 +6,7 @@ class ConstraintState(str, Enum):
     ACCEPTED = "Accepted"
     ACTIVATED = "Activated"
     NONCONFORMING = "Nonconforming"
+    DELETED = "Deleted"
 
 class ConstraintUSSAvailability(str, Enum):
     UNKNOWN = "Unknown"

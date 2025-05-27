@@ -3,6 +3,7 @@ from typing import List
 from uuid import UUID
 from pprint import pprint
 from fastapi import HTTPException
+from typing import List
 from pydantic import HttpUrl
 
 from config.config import Settings
@@ -18,7 +19,9 @@ from schemas.subscription import NewSubscription
 from schemas.error import ResponseError
 from schemas.constraint_reference import (
     ConstraintReferenceQueryResponse,
-    ConstraintReferenceQueryRequest
+    ConstraintReferenceQueryRequest,
+    ConstraintReferenceCreateRequest,
+    ConstraintReferenceCreateResponse
 )
 from schemas.operational_intent_reference import (
     OperationalIntentReferenceQueryRequest,
@@ -220,3 +223,36 @@ class DSSService:
 
         return OperationalIntentReferenceUpdateResponse.model_validate(response.json())
 
+    async def create_constraint(self, entity_id: UUID, areas_of_interest: List[AreaOfInterestSchema]) -> ConstraintReferenceCreateResponse:
+        """
+        Create a new constraint in the DSS.
+        """
+
+        app_domain = Settings().DOMAIN
+
+        if not app_domain:
+            raise ValueError("DOMAIN must be set in the environment variables.")
+        body = ConstraintReferenceCreateRequest(
+            extents=areas_of_interest,
+            uss_base_url=HttpUrl(app_domain),
+        )
+
+        response = await self._client.request(
+            "put",
+            f"/constraint_references/{entity_id}",
+            scope=Scope.CONSTRAINT_MANAGEMENT,
+            json=body.model_dump(mode="json"),
+        )
+
+        if response.status_code != HTTPStatus.CREATED.value:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=ResponseError(
+                    message="Error creating constraint in the DSS.",
+                    data=response.json(),
+                ).model_dump(mode="json"),
+            )
+
+        pprint(response.json())
+
+        return ConstraintReferenceCreateResponse.model_validate(response.json())

@@ -1,4 +1,5 @@
 from typing import Set
+from http import HTTPStatus
 from uuid import UUID
 from datetime import timedelta
 from fastapi import APIRouter
@@ -14,7 +15,7 @@ router = APIRouter()
 @router.post(
     "/",
     response_description="Receive notification of changed operational details",
-    status_code=204,
+    status_code=HTTPStatus.NO_CONTENT.value,
 )
 async def handle_operational_intent_notification(
     notification: OperationalIntentNotificationRequest,
@@ -58,7 +59,7 @@ async def handle_operational_intent_notification(
     "/{entity_id}",
     response_description="Retrieve the specified operational intent details",
     response_model=dict,
-    status_code=200,
+    status_code=HTTPStatus.OK.value,
 )
 async def get_operational_intent(
     entity_id: UUID,
@@ -81,7 +82,7 @@ async def get_operational_intent(
     "/{entity_id}/telemetry",
     response_description="Query detailed information on the position of an off-nominal operational intent from a USS",
     response_model=dict,
-    status_code=200,
+    status_code=HTTPStatus.OK.value,
 )
 async def get_operational_intent_telemetry(
     entity_id: UUID,
@@ -127,7 +128,7 @@ async def get_operational_intent_telemetry(
     "/{entity_id}/authorization",
     response_description="Query information of the flight authorization linked with this operational intent",
     response_model=dict,
-    status_code=200,
+    status_code=HTTPStatus.OK.value,
 )
 async def get_operational_intent_authorization(
     entity_id: UUID,
