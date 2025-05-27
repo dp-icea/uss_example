@@ -101,7 +101,7 @@ async def create_flight_plan_with_conflict(
     entity_id = uuid4()
 
     # List of conflict ovns to be considered when creating the area with conflicts
-    ovns: List[ovn] = await operational_intent_controller.get_close_ovns(area_of_interest)
+    ovns: List[ovn] = await operational_intent_controller.get_close_ovns([area_of_interest])
 
     # Register the operational intent reference in the DSS
     dss = DSSService()
@@ -165,7 +165,7 @@ async def activate_flight_plan(
                     data=area_of_interest.model_dump(mode="json"),
                 ).model_dump(mode="json"),
             )
-        ovns += await operational_intent_controller.get_close_ovns(area_of_interest)
+        ovns += await operational_intent_controller.get_close_ovns([area_of_interest])
 
     dss = DSSService()
     operational_intent_updated = await dss.update_operational_intent_reference(

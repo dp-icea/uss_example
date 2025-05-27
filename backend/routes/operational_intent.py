@@ -48,10 +48,12 @@ async def handle_operational_intent_notification(
 
     updated_operational_intent = notification.operational_intent
 
+    ovns = await operational_intent_controller.get_close_ovns(updated_operational_intent.details.volumes)
+
     operational_intent_reference_updated = await dss.update_operational_intent_reference(
         entity_id=notification.operational_intent_id,
         ovn=updated_operational_intent.reference.ovn,
-        keys=[],
+        keys=ovns,
         operational_intent=updated_operational_intent,
     )
 

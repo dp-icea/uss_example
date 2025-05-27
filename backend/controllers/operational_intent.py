@@ -15,7 +15,6 @@ async def entity_id_exists(entity_id: UUID) -> bool:
     """
     Check if the entity ID exists in the database.
     """
-
     return await OperationalIntentModel.find_one({
         "entity_id": entity_id
     }).exists()
@@ -70,7 +69,7 @@ async def update_operational_intent(entity_id: UUID, operational_intent: Operati
 
     return await operational_intent_model.save()
 
-async def get_close_ovns(area_of_interest: AreaOfInterestSchema) -> List[ovn]:
+async def get_close_ovns(areas_of_interest: List[AreaOfInterestSchema]) -> List[ovn]:
     """
     Get the keys of obstacles in the area of interest.
     This is a placeholder function and should be implemented based on actual requirements.
@@ -80,28 +79,29 @@ async def get_close_ovns(area_of_interest: AreaOfInterestSchema) -> List[ovn]:
 
     # Verify constraints
     dss = DSSService()
-    constraint_references = await dss.query_constraint_references(
-        area_of_interest=area_of_interest
-    )
-    if len(constraint_references.constraint_references) != 0:
-        for constraint in constraint_references.constraint_references:
-            uss = USSService(base_url=constraint.uss_base_url, manager=constraint.manager)
-            original_constraint = await uss.query_operational_intent(
-                entity_id=constraint.id,
-            )
-            keys.append(original_constraint.operational_intent.reference.ovn)
+    for area_of_interest in areas_of_interest:
+        constraint_references = await dss.query_constraint_references(
+            area_of_interest=area_of_interest
+        )
+        if len(constraint_references.constraint_references) != 0:
+            for constraint in constraint_references.constraint_references:
+                uss = USSService(base_url=constraint.uss_base_url, manager=constraint.manager)
+                original_constraint = await uss.query_operational_intent(
+                    entity_id=constraint.id,
+                )
+                keys.append(original_constraint.operational_intent.reference.ovn)
 
-    # Verify other Operational Intents
-    query_operations = await dss.query_operational_intent_references(
-        area_of_interest=area_of_interest,
-    )
-    if len(query_operations.operational_intent_references) != 0:
-        for operation in query_operations.operational_intent_references:
-            uss = USSService(base_url=operation.uss_base_url, manager=operation.manager)
-            original_operation = await uss.query_operational_intent(
-                entity_id=operation.id,
-            )
-            keys.append(original_operation.operational_intent.reference.ovn)
+        # Verify other Operational Intents
+        query_operations = await dss.query_operational_intent_references(
+            area_of_interest=area_of_interest,
+        )
+        if len(query_operations.operational_intent_references) != 0:
+            for operation in query_operations.operational_intent_references:
+                uss = USSService(base_url=operation.uss_base_url, manager=operation.manager)
+                original_operation = await uss.query_operational_intent(
+                    entity_id=operation.id,
+                )
+                keys.append(original_operation.operational_intent.reference.ovn)
 
     return keys
 
