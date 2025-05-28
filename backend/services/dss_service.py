@@ -16,7 +16,12 @@ from schema_types.operational_intent import OperationalIntentState
 from schema_types.ovn import ovn
 from schemas.area_of_interest import AreaOfInterestSchema
 from schemas.operational_intent import OperationalIntentSchema
-from schemas.subscription import NewSubscription
+from schemas.subscription import (
+    NewSubscriptionSchema,
+    SubscriptionCreateRequest,
+    SubscriptionCreateResponse,
+)
+
 from schemas.error import ResponseError
 from schemas.constraint_reference import (
     ConstraintReferenceDeleteResponse,
@@ -41,10 +46,12 @@ from schemas.operational_intent_reference import (
 class DSSService:
     def __init__(self):
         settings = Settings()
-        self._base_url = settings.DSS_URL
         
-        if not self._base_url:
-            raise ValueError("DSS_URL must be set in the environment variables.")
+        assert settings.DSS_URL, "DSS_URL must be set in the environment variables."
+        assert settings.DOMAIN, "DOMAIN must be set in the environment variables."
+
+        self._base_url: str = settings.DSS_URL
+        self._app_domain: str = settings.DOMAIN
 
         self._client = AuthAsyncClient(base_url=self._base_url, aud=Audition.DSS.value)
 
@@ -108,21 +115,16 @@ class DSSService:
         """
         Create a new operational intent in the DSS.
         """
-        app_domain = Settings().DOMAIN
-
-        if not app_domain:
-            raise ValueError("DOMAIN must be set in the environment variables.")
-
         body = OperationalIntentReferenceCreateRequest(
             extents=[
                 area_of_interest
             ],
             key=keys,
             state=OperationalIntentState.ACCEPTED.value,
-            uss_base_url=HttpUrl(app_domain),
+            uss_base_url=HttpUrl(self._app_domain),
             # TODO: Figure out what is a subscription.
-            new_subscription=NewSubscription(
-                uss_base_url=HttpUrl(app_domain),
+            new_subscription=NewSubscriptionSchema(
+                uss_base_url=HttpUrl(self._app_domain),
                 notify_for_constraints=True,
             ),
             flight_type=FlightType.VLOS.value,
@@ -200,7 +202,7 @@ class DSSService:
             key=keys,
             state=operational_intent.reference.state,
             uss_base_url=operational_intent.reference.uss_base_url,
-            new_subscription=NewSubscription(
+            new_subscription=NewSubscriptionSchema(
                 uss_base_url=operational_intent.reference.uss_base_url,
                 notify_for_constraints=True,
             ),
@@ -230,14 +232,9 @@ class DSSService:
         Create a new constraint in the DSS.
         """
 
-        app_domain = Settings().DOMAIN
-
-        if not app_domain:
-            raise ValueError("DOMAIN must be set in the environment variables.")
-            
         body = ConstraintReferenceCreateRequest(
             extents=areas_of_interest,
-            uss_base_url=HttpUrl(app_domain),
+            uss_base_url=HttpUrl(self._app_domain),
         )
 
         response = await self._client.request(
@@ -284,14 +281,9 @@ class DSSService:
         Update the constraint reference in the DSS.
         """
 
-        app_domain = Settings().DOMAIN
-
-        if not app_domain:
-            raise ValueError("DOMAIN must be set in the environment variables.")
-
         body = ConstraintReferenceUpdateRequest(
             extents=constraint.details.volumes,
-            uss_base_url=HttpUrl(app_domain),
+            uss_base_url=HttpUrl(self._app_domain),
         )
 
         response = await self._client.request(
@@ -312,3 +304,31 @@ class DSSService:
 
         return ConstraintReferenceUpdateResponse.model_validate(response.json())
 
+    async def create_subscription(self, subscription_id: UUID, area_of_interest: AreaOfInterestSchema) -> SubscriptionCreateResponse:
+        """
+        Create subscription in the DSS.
+        """
+        body = SubscriptionCreateRequest(
+            extents=area_of_interest,
+            uss_base_url=HttpUrl(self._app_domain),
+            notify_for_constraints=True,
+            notify_for_operational_intents=True,
+        )
+
+        response = await self._client.request(
+            "put",
+            f"/subscriptions/{subscription_id}",
+            scope=Scope.CONSTRAINT_PROCESSING,
+            json=body.model_dump(mode="json"),
+        )
+
+        if response.status_code != HTTPStatus.OK.value:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=ResponseError(
+                    message="Error querying DSS subscriptions.",
+                    data=response.json(),
+                ).model_dump(mode="json"),
+            )
+
+        return SubscriptionCreateResponse.model_validate(response.json())

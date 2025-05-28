@@ -5,7 +5,7 @@ from pydantic import BaseModel, HttpUrl, model_validator
 from schemas.area_of_interest import AreaOfInterestSchema
 from schema_types.ovn import ovn
 from schemas.operational_intent import OperationalIntentReferenceSchema
-from schemas.subscription import NewSubscription
+from schemas.subscription import NewSubscriptionSchema
 
 class OperationalIntentReferenceQueryRequest(BaseModel):
     area_of_interest: AreaOfInterestSchema
@@ -22,7 +22,7 @@ class OperationalIntentReferenceCreateRequest(BaseModel):
     state: str
     uss_base_url: HttpUrl
     subscription_id: Optional[UUID] = None
-    new_subscription: Optional[NewSubscription] = None
+    new_subscription: Optional[NewSubscriptionSchema] = None
     flight_type: str
 
     @model_validator(mode="before")
@@ -43,7 +43,7 @@ class OperationalIntentReferenceUpdateRequest(BaseModel):
     state: str
     uss_base_url: HttpUrl
     subscription_id: Optional[UUID] = None
-    new_subscription: Optional[NewSubscription] = None
+    new_subscription: Optional[NewSubscriptionSchema] = None
     flight_type: str
 
     @model_validator(mode="before")
