@@ -7,7 +7,7 @@ from controllers import operational_intent as operational_intent_controller
 from models.operational_intent import OperationalIntentModel
 from services.dss_service import DSSService
 from schema_types.operational_intent import OperationalIntentState
-from schema_types.ovn import ovn
+from schema_types.ovn import OVN
 from schemas.operational_intent import OperationalIntentDetailSchema, OperationalIntentSchema
 from schemas.area_of_interest import AreaOfInterestSchema
 from schemas.response import Response
@@ -38,25 +38,23 @@ async def create_flight_plan(
     query_constraints = await dss.query_constraint_references(
         area_of_interest=area_of_interest
     )
-    if len(query_constraints.constraint_references) != 0:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST.value,
-            detail=ResponseError(
-                message="Area of interest is blocked by constraints.",
-                data=query_constraints.model_dump(mode="json"),
-            ).model_dump(mode="json"),
-        )
+    conflicting_constraints = query_constraints.constraint_references
 
     # Verify other Operational Intents
     query_operations = await dss.query_operational_intent_references(
         area_of_interest=area_of_interest,
     )
-    if len(query_operations.operational_intent_references) != 0:
+    conflicting_operations = query_operations.operational_intent_references
+
+    if conflicting_constraints or conflicting_operations:
         raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST.value,
+            status_code=HTTPStatus.CONFLICT.value,
             detail=ResponseError(
-                message="Area of interest is blocked by other operational intents.",
-                data=query_operations.model_dump(mode="json"),
+                message="Flight plan area of interest conflicts with existing constraints or operational intents",
+                data={
+                    "constraints": [constraint.model_dump(mode="json") for constraint in conflicting_constraints],
+                    "operational_intents": [operation.model_dump(mode="json") for operation in conflicting_operations],
+                },
             ).model_dump(mode="json"),
         )
 
@@ -75,8 +73,9 @@ async def create_flight_plan(
             ),
     )
 
-    # TODO: Change this to the controller
-    await operation_model.create()
+    await operational_intent_controller.create_operational_intent(
+        operational_intent=operation_model,
+    )
 
     return Response(
         status=HTTPStatus.CREATED.value,
@@ -101,7 +100,7 @@ async def create_flight_plan_with_conflict(
     entity_id = uuid4()
 
     # List of conflict ovns to be considered when creating the area with conflicts
-    ovns: List[ovn] = await operational_intent_controller.get_close_ovns([area_of_interest])
+    ovns: List[OVN] = await operational_intent_controller.get_close_ovns([area_of_interest])
 
     # Register the operational intent reference in the DSS
     dss = DSSService()
@@ -128,7 +127,7 @@ async def create_flight_plan_with_conflict(
         data=create_operation.model_dump(mode="json"),
     )
 
-@router.patch(
+@router.post(
     "/{entity_id}",
     response_description="Activate the flight plan",
     response_model=Response,
@@ -154,7 +153,7 @@ async def activate_flight_plan(
 
     # TODO: Verify operational intent references in the area
     # Need to inform the keys in the update operation
-    ovns: List[ovn] = []
+    ovns: List[OVN] = []
 
     for area_of_interest in old_operational_intent.details.volumes:
         if area_of_interest.volume is None:
@@ -187,3 +186,125 @@ async def activate_flight_plan(
         message="Operational intent activated successfully",
         data=operational_intent.model_dump(mode="json"),
     )
+
+@router.get(
+    "/{entity_id}",
+    response_description="Retrieve the specified flight plan details",
+    response_model=Response,
+    status_code=HTTPStatus.OK.value,
+)
+async def get_flight_plan(
+    entity_id: UUID,
+):
+    """
+    Retrieve the specified flight plan details
+    """
+    
+    operational_intent = await operational_intent_controller.get_operational_intent(
+        entity_id=entity_id,
+    )
+
+    return Response(
+        status=HTTPStatus.OK.value,
+        message="Operational intent retrieved successfully",
+        data=operational_intent.model_dump(mode="json"),
+    )
+
+@router.delete(
+    "/{entity_id}",
+    response_description="Delete the flight plan",
+    response_model=Response,
+    status_code=HTTPStatus.OK.value,
+)
+async def delete_flight_plan(
+    entity_id: UUID,
+):
+    """
+    Delete the flight plan
+    """
+
+    dss = DSSService()
+
+    operational_intent = await operational_intent_controller.get_operational_intent(
+            entity_id=entity_id,
+        )
+
+    # TODO: Notify the subscribers from the deleted operation area
+    _ = await dss.delete_operational_intent_reference(
+        entity_id=operational_intent.reference.id,
+        ovn=operational_intent.reference.ovn,
+    )
+
+    operational_intent_deleted = await operational_intent_controller.delete_operational_intent(
+        entity_id=operational_intent.reference.id,
+    )
+
+    return Response(
+        status=HTTPStatus.OK.value,
+        message="Operational intent deleted successfully",
+        data = operational_intent_deleted.model_dump(mode="json"),
+    )
+
+
+@router.patch(
+    "/",
+    response_description="Update the flight plan",
+    status_code=HTTPStatus.OK.value,
+)
+async def update_flight_plan(
+    updated_operational_intent: OperationalIntentSchema = Body(...),
+):
+    dss = DSSService()
+
+    operational_intent_reference_updated = await dss.update_operational_intent_reference(
+        entity_id=updated_operational_intent.reference.id,
+        ovn=updated_operational_intent.reference.ovn,
+        keys=[],
+        operational_intent=updated_operational_intent,
+    )
+
+    updated_operational_intent.reference = operational_intent_reference_updated.operational_intent_reference
+
+    await operational_intent_controller.update_operational_intent(
+        entity_id=updated_operational_intent.reference.id,
+        operational_intent=updated_operational_intent,
+    )
+
+    return Response(
+        status=HTTPStatus.OK.value,
+        message="Operational intent updated successfully",
+        data=updated_operational_intent.model_dump(mode="json"),
+    )
+
+@router.patch(
+    "/with_conflict",
+    response_description="Update the flight plan with area conflicts",
+    status_code=HTTPStatus.OK.value,
+)
+async def update_flight_plan_with_conflict(
+    updated_operational_intent: OperationalIntentSchema = Body(...),
+):
+    ovns = await operational_intent_controller.get_close_ovns(updated_operational_intent.details.volumes)
+
+    dss = DSSService()
+
+    operational_intent_reference_updated = await dss.update_operational_intent_reference(
+        entity_id=updated_operational_intent.reference.id,
+        ovn=updated_operational_intent.reference.ovn,
+        keys=ovns,
+        operational_intent=updated_operational_intent,
+    )
+
+    updated_operational_intent.reference = operational_intent_reference_updated.operational_intent_reference
+
+    await operational_intent_controller.update_operational_intent(
+        entity_id=updated_operational_intent.reference.id,
+        operational_intent=updated_operational_intent,
+    )
+
+    return Response(
+        status=HTTPStatus.OK.value,
+        message="Operational intent updated successfully",
+        data=updated_operational_intent.model_dump(mode="json"),
+    )
+

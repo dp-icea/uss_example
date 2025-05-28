@@ -30,13 +30,6 @@ async def add_subscription(
         subscription_id=subscription_id,
         area_of_interest=area_of_interest,
     )
-    
-    subscription_model = SubscriptionModel(
-        subscription=subscription_created.subscription
-    )
-
-    await subscription_controller.create_subscription(subscription_model)
-
 
     return Response(
         status=HTTPStatus.CREATED.value,
@@ -53,13 +46,9 @@ async def get_subscription(subscription_id: UUID):
     """
     Get the details of a subscription by its ID.
     """
-    subscription = await subscription_controller.get_subscription(subscription_id)
+    dss = DSSService()
 
-    if not subscription:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND.value,
-            detail="Subscription not found"
-        )
+    subscription = await dss.get_subscription(subscription_id)
 
     return Response(
         status=HTTPStatus.OK.value,

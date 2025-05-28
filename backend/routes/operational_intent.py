@@ -12,6 +12,7 @@ from schema_types.operational_intent import OperationalIntentState
 
 router = APIRouter()
 
+# TODO: In the future. Implement a webhook for the client to receive constant updates
 @router.post(
     "/",
     response_description="Receive notification of changed operational details",
@@ -19,51 +20,7 @@ router = APIRouter()
 )
 async def handle_operational_intent_notification(
     notification: OperationalIntentNotificationRequest,
-):
-    """
-    Receive notification of changed operational details
-    """
-
-    # Check if the entity ID existsds
-    dss = DSSService()
-
-    # Verify if the Operation should be deleted
-    if notification.operational_intent is None:
-        operational_intent = await operational_intent_controller.get_operational_intent(
-            entity_id=notification.operational_intent_id,
-        )
-
-        # Delete the opreational intent from the DSS database
-        # TODO: Notify the subscribers from the deleted operation area
-        _ = await dss.delete_operational_intent_reference(
-            entity_id=operational_intent.reference.id,
-            ovn=operational_intent.reference.ovn,
-        )
-
-        await operational_intent_controller.delete_operational_intent(
-            entity_id=operational_intent.reference.id,
-        )
-
-        return
-
-    updated_operational_intent = notification.operational_intent
-
-    ovns = await operational_intent_controller.get_close_ovns(updated_operational_intent.details.volumes)
-
-    operational_intent_reference_updated = await dss.update_operational_intent_reference(
-        entity_id=notification.operational_intent_id,
-        ovn=updated_operational_intent.reference.ovn,
-        keys=ovns,
-        operational_intent=updated_operational_intent,
-    )
-
-    updated_operational_intent.reference = operational_intent_reference_updated.operational_intent_reference
-
-    await operational_intent_controller.update_operational_intent(
-        entity_id=notification.operational_intent_id,
-        operational_intent=updated_operational_intent,
-    )
-
+): pass
 
 # TODO: Add a Depends function to validate the aud parameter in the JWT tokenm 
 #   and validating the signature with the public key

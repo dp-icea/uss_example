@@ -38,3 +38,5 @@ class SubscriptionCreateResponse(BaseModel):
     operational_intent_references: List[OperationalIntentReferenceSchema]
     constraint_references: List[ConstraintReferenceSchema]
 
+class SubscriptionGetResponse(BaseModel):
+    subscription: SubscriptionSchema

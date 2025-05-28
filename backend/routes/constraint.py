@@ -9,6 +9,9 @@ from schema_types.constraint import ConstraintState
 
 router = APIRouter()
 
+# TODO: This logic is wrong. Change it
+# It is notification about external constraints.
+# We should decide how to deal with that.
 @router.post(
     "/",
     response_description="Receive notification of changed constraints",

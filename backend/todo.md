@@ -37,9 +37,12 @@ X Constraint Endpoints
     X Handle changes in the constraints
 
 Subscription
-- Add subscription to an area
+X Add subscription to an area
+X Get subscription
 - When handling operational intent delete, notify the subscribers
 - Receive subscription notifications
+    - ERROR: Modify the current endpoints that consider the post endpoint as
+        self endpoints
 - Send subscription notifications (When creating a flight)
 
 User Auth

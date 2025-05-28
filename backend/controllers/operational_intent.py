@@ -34,7 +34,7 @@ async def get_operational_intent(entity_id: UUID) -> OperationalIntentModel:
         )
     return operational_intent
 
-async def delete_operational_intent(entity_id: UUID) -> None:
+async def delete_operational_intent(entity_id: UUID) -> OperationalIntentModel:
     """
     Delete the specified operational intent
     """
@@ -50,7 +50,22 @@ async def delete_operational_intent(entity_id: UUID) -> None:
         )
 
     operational_intent.reference.state = OperationalIntentState.DELETED
-    await operational_intent.save()
+    return await operational_intent.save()
+
+async def create_operational_intent(operational_intent: OperationalIntentModel) -> OperationalIntentModel:
+    """
+    Create a new operational intent
+    """
+    # New entity id created to identify the operational intent
+    entity_id = operational_intent.reference.id
+
+    if await entity_id_exists(entity_id):
+        raise HTTPException(
+            status_code=HTTPStatus.CONFLICT.value,
+            detail="Operational intent with this entity ID already exists"
+        )
+
+    return await operational_intent.save()
 
 async def update_operational_intent(entity_id: UUID, operational_intent: OperationalIntentSchema) -> OperationalIntentModel:
     """

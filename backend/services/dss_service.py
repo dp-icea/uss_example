@@ -20,6 +20,7 @@ from schemas.subscription import (
     NewSubscriptionSchema,
     SubscriptionCreateRequest,
     SubscriptionCreateResponse,
+    SubscriptionGetResponse,
 )
 
 from schemas.error import ResponseError
@@ -332,3 +333,24 @@ class DSSService:
             )
 
         return SubscriptionCreateResponse.model_validate(response.json())
+    
+    async def get_subscription(self, subscription_id: UUID) -> SubscriptionGetResponse:
+        """
+        Get the subscription details from the DSS.
+        """
+        response = await self._client.request(
+            "get",
+            f"/subscriptions/{subscription_id}",
+            scope=Scope.CONSTRAINT_PROCESSING,
+        )
+
+        if response.status_code != HTTPStatus.OK.value:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=ResponseError(
+                    message="Error getting subscription from the DSS.",
+                    data=response.json(),
+                ).model_dump(mode="json"),
+            )
+
+        return SubscriptionGetResponse.model_validate(response.json())
