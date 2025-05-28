@@ -3,6 +3,7 @@ from enum import Enum
 from typing import Any, Optional, List
 from pydantic import BaseModel, HttpUrl
 
+from schemas.subscription import SubscriptionBaseSchema
 from schemas.time_point import TimePoint
 from schemas.area_of_interest import AreaOfInterestSchema
 from schema_types.constraint import ConstraintUSSAvailability, ConstraintState
@@ -32,4 +33,4 @@ class ConstraintSchema(BaseModel):
 class ConstraintNotificationRequest(BaseModel):
     constraint_id: UUID
     constraint: Optional[ConstraintSchema]
-    subscriptions: List[Any]
+    subscriptions: List[SubscriptionBaseSchema]

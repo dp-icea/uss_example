@@ -5,7 +5,11 @@ from pydantic import BaseModel, HttpUrl
 
 from schemas.time_point import TimePoint
 from schemas.area_of_interest import AreaOfInterestSchema
-from schema_types.operational_intent import OperationalIntentUSSAvailability, OperationalIntentState
+from schemas.subscription import SubscriptionBaseSchema
+from schema_types.operational_intent import (
+        OperationalIntentUSSAvailability,
+        OperationalIntentState
+)
 
 class OperationalIntentDetailSchema(BaseModel):
     volumes: List[AreaOfInterestSchema]
@@ -32,7 +36,7 @@ class OperationalIntentSchema(BaseModel):
 class OperationalIntentNotificationRequest(BaseModel):
     operational_intent_id: UUID
     operational_intent: Optional[OperationalIntentSchema]
-    subscriptions: List[Any]
+    subscriptions: List[SubscriptionBaseSchema]
 
 class OperationalIntentGetResponse(BaseModel):
     operational_intent: OperationalIntentSchema

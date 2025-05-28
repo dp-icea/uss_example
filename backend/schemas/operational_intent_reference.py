@@ -5,7 +5,7 @@ from pydantic import BaseModel, HttpUrl, model_validator
 from schemas.area_of_interest import AreaOfInterestSchema
 from schema_types.ovn import ovn
 from schemas.operational_intent import OperationalIntentReferenceSchema
-from schemas.subscription import NewSubscriptionSchema
+from schemas.subscription import NewSubscriptionSchema, SubscriptionBaseSchema
 
 class OperationalIntentReferenceQueryRequest(BaseModel):
     area_of_interest: AreaOfInterestSchema
@@ -34,7 +34,7 @@ class OperationalIntentReferenceCreateRequest(BaseModel):
         return values
 
 class OperationalIntentReferenceCreateResponse(BaseModel):
-    subscribers: List[Any]
+    subscribers: List[SubscriptionBaseSchema]
     operational_intent_reference: OperationalIntentReferenceSchema
 
 class OperationalIntentReferenceUpdateRequest(BaseModel):
@@ -59,7 +59,7 @@ class OperationalIntentReferenceDeleteResponse(BaseModel):
     operational_intent_reference: OperationalIntentReferenceSchema
 
 class OperationalIntentReferenceUpdateResponse(BaseModel):
-    subscribers: List[Any]
+    subscribers: List[SubscriptionBaseSchema]
     operational_intent_reference: OperationalIntentReferenceSchema
 
 

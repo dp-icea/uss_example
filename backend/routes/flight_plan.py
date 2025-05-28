@@ -12,6 +12,7 @@ from schemas.operational_intent import OperationalIntentDetailSchema, Operationa
 from schemas.area_of_interest import AreaOfInterestSchema
 from schemas.response import Response
 from schemas.error import ResponseError
+from services.uss_service import USSService
 
 router = APIRouter()
 
@@ -63,24 +64,38 @@ async def create_flight_plan(
         entity_id=entity_id,
         area_of_interest=area_of_interest,
     )
+
+    operational_intent = OperationalIntentSchema(
+        reference=create_operation.operational_intent_reference,
+        details=OperationalIntentDetailSchema(
+            volumes=[area_of_interest],
+            off_nominal_volumes=[],
+            priority=0,
+        ),
+    )
      
     operation_model = OperationalIntentModel(
-            reference = create_operation.operational_intent_reference,
-            details = OperationalIntentDetailSchema(
-                volumes=[area_of_interest],
-                off_nominal_volumes=[],
-                priority=0,
-            ),
+        reference=operational_intent.reference,
+        details=operational_intent.details,
     )
 
     await operational_intent_controller.create_operational_intent(
         operational_intent=operation_model,
     )
 
+    for subscription in create_operation.subscribers:
+        subscription_response = await dss.get_subscription(subscription_id=subscription.subscription_id)
+        uss = USSService(base_url=subscription_response.subscription.uss_base_url)
+        await uss.notify_operational_intent(
+            subscription=subscription,
+            operational_intent_id=entity_id,
+            operational_intent=operational_intent,
+        )
+
     return Response(
         status=HTTPStatus.CREATED.value,
         message="Operational intent created successfully",
-        data=create_operation.model_dump(mode="json"),
+        data=operational_intent.model_dump(mode="json"),
     )
 
 @router.put(
@@ -109,22 +124,35 @@ async def create_flight_plan_with_conflict(
         area_of_interest=area_of_interest,
         keys=ovns,
     )
+
+    operational_intent = OperationalIntentSchema(
+        reference=create_operation.operational_intent_reference,
+        details=OperationalIntentDetailSchema(
+            volumes=[area_of_interest],
+            off_nominal_volumes=[],
+            priority=0,
+        ),
+    )
      
     operation_model = OperationalIntentModel(
-            reference = create_operation.operational_intent_reference,
-            details = OperationalIntentDetailSchema(
-                volumes=[area_of_interest],
-                off_nominal_volumes=[],
-                priority=0,
-            ),
+        reference=operational_intent.reference,
+        details=operational_intent.details,
     )
 
-    await operation_model.create()
+    await operational_intent_controller.create_operational_intent(
+        operational_intent=operation_model,
+    )
+
+    await operational_intent_controller.notify_subscribers(
+        subscribers=create_operation.subscribers,
+        operational_intent_id=entity_id,
+        operational_intent=operational_intent,
+    )
 
     return Response(
         status=HTTPStatus.CREATED.value,
         message="Operational intent created successfully",
-        data=create_operation.model_dump(mode="json"),
+        data=operational_intent.model_dump(mode="json"),
     )
 
 @router.post(

@@ -7,6 +7,7 @@ from models.operational_intent import OperationalIntentModel
 from services.dss_service import DSSService
 from services.uss_service import USSService
 from schemas.operational_intent import OperationalIntentSchema
+from schemas.subscriptions import SubscriptionsBaseSchema
 from schemas.area_of_interest import AreaOfInterestSchema
 from schema_types.operational_intent import OperationalIntentState
 from schema_types.ovn import ovn
@@ -100,7 +101,7 @@ async def get_close_ovns(areas_of_interest: List[AreaOfInterestSchema]) -> List[
         )
         if len(constraint_references.constraint_references) != 0:
             for constraint in constraint_references.constraint_references:
-                uss = USSService(base_url=constraint.uss_base_url, manager=constraint.manager)
+                uss = USSService(base_url=constraint.uss_base_url)
                 original_constraint = await uss.query_operational_intent(
                     entity_id=constraint.id,
                 )
@@ -112,7 +113,7 @@ async def get_close_ovns(areas_of_interest: List[AreaOfInterestSchema]) -> List[
         )
         if len(query_operations.operational_intent_references) != 0:
             for operation in query_operations.operational_intent_references:
-                uss = USSService(base_url=operation.uss_base_url, manager=operation.manager)
+                uss = USSService(base_url=operation.uss_base_url)
                 original_operation = await uss.query_operational_intent(
                     entity_id=operation.id,
                 )
@@ -120,3 +121,17 @@ async def get_close_ovns(areas_of_interest: List[AreaOfInterestSchema]) -> List[
 
     return keys
 
+async def notify_subscribers(
+        subscribers: List[SubscriptionsBaseSchema],
+        operational_intent_id: UUID,
+        operational_intent: OperationalIntentSchema,
+):
+    dss = DSSService()
+    for subscription in subscribers:
+        subscription_response = await dss.get_subscription(subscription_id=subscription.subscription_id)
+        uss = USSService(base_url=subscription_response.subscription.uss_base_url)
+        await uss.notify_operational_intent(
+            subscription=subscription,
+            operational_intent_id=operational_intent_id,
+            operational_intent=operational_intent,
+        )
