@@ -9,52 +9,15 @@ from schema_types.constraint import ConstraintState
 
 router = APIRouter()
 
-# TODO: This logic is wrong. Change it
-# It is notification about external constraints.
-# We should decide how to deal with that.
+# TODO: In the future. Implement a webhook for the client to receive constant updates
 @router.post(
     "/",
-    response_description="Receive notification of changed constraints",
+    response_description="Receive notification of new constraints in the area",
     status_code=HTTPStatus.NO_CONTENT.value,
 )
 async def handle_constraint_notification(
     notification: ConstraintNotificationRequest,
-):
-    dss = DSSService()
-
-    # Verify if the Constraint should be deleted
-    if notification.constraint is None:
-        constraint = await constraint_controller.get_constraint(
-            entity_id=notification.constraint_id,
-        )
-        
-        # TODO: Handle delete subscription notification here
-        _ = await dss.delete_constraint_reference(
-            entity_id=constraint.reference.id,
-            ovn=constraint.reference.ovn,
-        )
-
-        await constraint_controller.delete_constraint(
-            entity_id=constraint.reference.id,
-        )
-
-        return
-
-    updated_constraint = notification.constraint
-
-    constraint_reference_updated = await dss.update_constraint_reference(
-        entity_id=notification.constraint_id,
-        ovn=updated_constraint.reference.ovn,
-        constraint=updated_constraint,
-    )
-
-    updated_constraint.reference = constraint_reference_updated.constraint_reference
-
-    # Update the modified constraint values in the USS database
-    await constraint_controller.update_constraint(
-        entity_id=notification.constraint_id,
-        new_constraint=updated_constraint,
-    )
+): pass
 
 @router.get(
     "/{entity_id}",
