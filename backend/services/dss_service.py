@@ -1,7 +1,6 @@
 from http import HTTPStatus
 from typing import List
 from uuid import UUID
-from pprint import pprint
 from fastapi import HTTPException
 from typing import List
 from pydantic import HttpUrl
@@ -14,16 +13,15 @@ from schema_types.auth import Audition, Scope
 from schema_types.flight import FlightType
 from schema_types.operational_intent import OperationalIntentState
 from schema_types.ovn import ovn
+from schema_types.subscription import NewSubscriptionSchema
 from schemas.area_of_interest import AreaOfInterestSchema
 from schemas.operational_intent import OperationalIntentSchema
+from schemas.error import ResponseError
 from schemas.subscription import (
-    NewSubscriptionSchema,
     SubscriptionCreateRequest,
     SubscriptionCreateResponse,
     SubscriptionGetResponse,
 )
-
-from schemas.error import ResponseError
 from schemas.constraint_reference import (
     ConstraintReferenceDeleteResponse,
     ConstraintReferenceQueryResponse,

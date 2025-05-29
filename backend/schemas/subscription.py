@@ -7,14 +7,6 @@ from schemas.operational_intent import OperationalIntentReferenceSchema
 from schemas.time_point import TimePoint
 from schemas.area_of_interest import AreaOfInterestSchema
 
-class NewSubscriptionSchema(BaseModel):
-    uss_base_url: HttpUrl
-    notify_for_constraints: bool
-
-class SubscriptionBaseSchema(BaseModel):
-    subscription_id: UUID
-    notification_index: int
-
 class SubscriptionSchema(BaseModel):
     id: UUID
     notification_index: int

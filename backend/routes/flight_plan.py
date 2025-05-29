@@ -75,22 +75,18 @@ async def create_flight_plan(
     )
      
     operation_model = OperationalIntentModel(
-        reference=operational_intent.reference,
-        details=operational_intent.details,
+        operational_intent=operational_intent
     )
 
     await operational_intent_controller.create_operational_intent(
         operational_intent=operation_model,
     )
 
-    for subscription in create_operation.subscribers:
-        subscription_response = await dss.get_subscription(subscription_id=subscription.subscription_id)
-        uss = USSService(base_url=subscription_response.subscription.uss_base_url)
-        await uss.notify_operational_intent(
-            subscription=subscription,
-            operational_intent_id=entity_id,
-            operational_intent=operational_intent,
-        )
+    await operational_intent_controller.notify_subscribers(
+        subscribers=create_operation.subscribers,
+        operational_intent_id=entity_id,
+        operational_intent=operational_intent,
+    )
 
     return Response(
         status=HTTPStatus.CREATED.value,
@@ -135,8 +131,7 @@ async def create_flight_plan_with_conflict(
     )
      
     operation_model = OperationalIntentModel(
-        reference=operational_intent.reference,
-        details=operational_intent.details,
+        operational_intent=operational_intent,
     )
 
     await operational_intent_controller.create_operational_intent(
@@ -168,45 +163,37 @@ async def activate_flight_plan(
     Activate the flight plan
     """
 
-    old_operational_intent_model = await operational_intent_controller.get_operational_intent(
+    operational_intent_model = await operational_intent_controller.get_operational_intent(
         entity_id=entity_id,
     )
 
-    old_operational_intent = OperationalIntentSchema(
-        reference=old_operational_intent_model.reference,
-        details=old_operational_intent_model.details,
+    operational_intent = operational_intent_model.operational_intent
+
+    operational_intent.reference.state = OperationalIntentState.ACTIVATED
+
+    ovns: List[OVN] = await operational_intent_controller.get_close_ovns(
+        areas_of_interest=operational_intent.details.volumes
     )
-
-    old_operational_intent.reference.state = OperationalIntentState.ACTIVATED
-
-    # TODO: Verify operational intent references in the area
-    # Need to inform the keys in the update operation
-    ovns: List[OVN] = []
-
-    for area_of_interest in old_operational_intent.details.volumes:
-        if area_of_interest.volume is None:
-            raise HTTPException(
-                status_code=HTTPStatus.BAD_REQUEST.value,
-                detail=ResponseError(
-                    message="Flight plan has invalid operation volume volume",
-                    data=area_of_interest.model_dump(mode="json"),
-                ).model_dump(mode="json"),
-            )
-        ovns += await operational_intent_controller.get_close_ovns([area_of_interest])
 
     dss = DSSService()
-    operational_intent_updated = await dss.update_operational_intent_reference(
+    operational_intent_reference_updated = await dss.update_operational_intent_reference(
         entity_id=entity_id,
-        ovn=old_operational_intent.reference.ovn,
+        ovn=operational_intent.reference.ovn,
         keys=ovns,
-        operational_intent=old_operational_intent
+        operational_intent=operational_intent,
     )
 
-    old_operational_intent.reference.ovn = operational_intent_updated.operational_intent_reference.ovn
+    operational_intent.reference = operational_intent_reference_updated.operational_intent_reference
 
-    operational_intent = await operational_intent_controller.update_operational_intent(
+    operational_intent_model = await operational_intent_controller.update_operational_intent(
         entity_id=entity_id,
-        operational_intent=old_operational_intent,
+        operational_intent=operational_intent,
+    )
+
+    await operational_intent_controller.notify_subscribers(
+        subscribers=operational_intent_reference_updated.subscribers,
+        operational_intent_id=entity_id,
+        operational_intent=operational_intent,
     )
 
     return Response(
@@ -253,18 +240,26 @@ async def delete_flight_plan(
 
     dss = DSSService()
 
-    operational_intent = await operational_intent_controller.get_operational_intent(
+    operational_intent_model = await operational_intent_controller.get_operational_intent(
             entity_id=entity_id,
         )
 
+    operational_intent = operational_intent_model.operational_intent
+
     # TODO: Notify the subscribers from the deleted operation area
-    _ = await dss.delete_operational_intent_reference(
+    operational_intent_reference_deleted = await dss.delete_operational_intent_reference(
         entity_id=operational_intent.reference.id,
         ovn=operational_intent.reference.ovn,
     )
 
     operational_intent_deleted = await operational_intent_controller.delete_operational_intent(
         entity_id=operational_intent.reference.id,
+    )
+
+    await operational_intent_controller.notify_subscribers(
+        subscribers=operational_intent_reference_deleted.subscribers,
+        operational_intent_id=entity_id,
+        operational_intent=None,
     )
 
     return Response(
@@ -298,6 +293,12 @@ async def update_flight_plan(
         operational_intent=updated_operational_intent,
     )
 
+    await operational_intent_controller.notify_subscribers(
+        subscribers=operational_intent_reference_updated.subscribers,
+        operational_intent_id=updated_operational_intent.reference.id,
+        operational_intent=updated_operational_intent,
+    )
+
     return Response(
         status=HTTPStatus.OK.value,
         message="Operational intent updated successfully",
@@ -327,6 +328,12 @@ async def update_flight_plan_with_conflict(
 
     await operational_intent_controller.update_operational_intent(
         entity_id=updated_operational_intent.reference.id,
+        operational_intent=updated_operational_intent,
+    )
+
+    await operational_intent_controller.notify_subscribers(
+        subscribers=operational_intent_reference_updated.subscribers,
+        operational_intent_id=updated_operational_intent.reference.id,
         operational_intent=updated_operational_intent,
     )
 

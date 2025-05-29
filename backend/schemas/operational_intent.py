@@ -5,7 +5,7 @@ from pydantic import BaseModel, HttpUrl
 
 from schemas.time_point import TimePoint
 from schemas.area_of_interest import AreaOfInterestSchema
-from schemas.subscription import SubscriptionBaseSchema
+from schema_types.subscription import SubscriptionBaseSchema
 from schema_types.operational_intent import (
         OperationalIntentUSSAvailability,
         OperationalIntentState

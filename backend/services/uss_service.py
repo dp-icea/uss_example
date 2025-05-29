@@ -12,8 +12,8 @@ from schemas.operational_intent import (
     OperationalIntentSchema,
     OperationalIntentNotificationRequest,
 )
-from schemas.subscription import SubscriptionBaseSchema
 from schemas.error import ResponseError
+from schema_types.subscription import SubscriptionBaseSchema
 from schema_types.auth import Scope
 
 class USSService:

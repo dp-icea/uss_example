@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from fastapi import HTTPException
 from http import HTTPStatus
 from uuid import UUID
@@ -7,7 +7,7 @@ from models.operational_intent import OperationalIntentModel
 from services.dss_service import DSSService
 from services.uss_service import USSService
 from schemas.operational_intent import OperationalIntentSchema
-from schemas.subscriptions import SubscriptionsBaseSchema
+from schema_types.subscription import SubscriptionBaseSchema
 from schemas.area_of_interest import AreaOfInterestSchema
 from schema_types.operational_intent import OperationalIntentState
 from schema_types.ovn import ovn
@@ -17,7 +17,7 @@ async def entity_id_exists(entity_id: UUID) -> bool:
     Check if the entity ID exists in the database.
     """
     return await OperationalIntentModel.find_one({
-        "entity_id": entity_id
+        "operational_intent.reference.id": entity_id
     }).exists()
 
 async def get_operational_intent(entity_id: UUID) -> OperationalIntentModel:
@@ -25,7 +25,7 @@ async def get_operational_intent(entity_id: UUID) -> OperationalIntentModel:
     Retrieve the specified operational intent details
     """
     operational_intent = await OperationalIntentModel.find_one({
-        "reference.id": entity_id
+        "operational_intent.reference.id": entity_id
     })
 
     if operational_intent is None:
@@ -41,7 +41,7 @@ async def delete_operational_intent(entity_id: UUID) -> OperationalIntentModel:
     """
 
     operational_intent = await OperationalIntentModel.find_one({
-        "reference.id": entity_id
+        "operational_intent.reference.id": entity_id
     })
 
     if operational_intent is None:
@@ -80,8 +80,7 @@ async def update_operational_intent(entity_id: UUID, operational_intent: Operati
             detail="Operational intent not found"
         )
 
-    operational_intent_model.reference = operational_intent.reference
-    operational_intent_model.details = operational_intent.details
+    operational_intent_model.operational_intent = operational_intent
 
     return await operational_intent_model.save()
 
@@ -122,9 +121,10 @@ async def get_close_ovns(areas_of_interest: List[AreaOfInterestSchema]) -> List[
     return keys
 
 async def notify_subscribers(
-        subscribers: List[SubscriptionsBaseSchema],
+        subscribers: List[SubscriptionBaseSchema],
         operational_intent_id: UUID,
-        operational_intent: OperationalIntentSchema,
+        operational_intent: Optional[OperationalIntentSchema],
+
 ):
     dss = DSSService()
     for subscription in subscribers:
