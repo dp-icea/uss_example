@@ -31,19 +31,25 @@ async def add_constraint(
         areas_of_interest=areas_of_interest,
     )
 
-    constraint_model = ConstraintModel(
+    constraint = ConstraintSchema(
         reference=constraint_created.constraint_reference,
         details= ConstraintDetailSchema(
             volumes=areas_of_interest,
-            # TODO: Verify the usage those two fields
             type=DEFAULT_CONSTRAINT_TYPE,
             geozone=None,
         ),
     )
 
-    # TODO: Implement
     await constraint_controller.create_constraint(
-        constraint=constraint_model
+        constraint=ConstraintModel(
+            constraint=constraint,
+        )
+    )
+
+    await constraint_controller.notify_subscribers(
+        subscribers=constraint_created.subscribers,
+        constraint_id=entity_id,
+        constraint=constraint,
     )
 
     return Response(
@@ -94,13 +100,19 @@ async def delete_constraint(
     constraint = await constraint_controller.get_constraint(entity_id=entity_id)
 
     # Delete the constraint reference in the DSS
-    _ = await dss.delete_constraint_reference(
+    constraint_reference_deleted = await dss.delete_constraint_reference(
         entity_id=constraint.reference.id,
         ovn=constraint.reference.ovn,
     )
 
     # Delete the constraint in the USS database
     await constraint_controller.delete_constraint(entity_id=entity_id)
+
+    await constraint_controller.notify_subscribers(
+        subscribers=constraint_reference_deleted.subscribers,
+        constraint_id=entity_id,
+        constraint=None,
+    )
 
 @router.patch(
     "/",
@@ -128,6 +140,13 @@ async def update_constraint(
     updated_constraint = await constraint_controller.update_constraint(
         entity_id=new_constraint.reference.id,
         new_constraint=new_constraint,
+    )
+
+    # Notify subscribers about the updated constraint
+    await constraint_controller.notify_subscribers(
+        subscribers=constraint_reference_updated.subscribers,
+        constraint_id=new_constraint.reference.id,
+        constraint=new_constraint,
     )
 
     return Response(

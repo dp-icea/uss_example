@@ -1,16 +1,20 @@
 from fastapi import HTTPException
 from http import HTTPStatus
 from uuid import UUID
+from typing import List, Optional
 
 from models.constraint import ConstraintModel
+from services.dss_service import DSSService
+from services.uss_service import USSService
 from schemas.constraint import ConstraintSchema
+from schema_types.subscription import SubscriptionBaseSchema
 
 async def get_constraint(entity_id: UUID) -> ConstraintModel:
     """
     Retrieve the specified operational intent details
     """
     constraint = await ConstraintModel.find_one({
-        "reference.id": entity_id
+        "constraint.reference.id": entity_id
     })
 
     if constraint is None:
@@ -26,7 +30,7 @@ async def create_constraint(constraint: ConstraintModel) -> ConstraintModel:
     Create a new constraint in the USS database.
     """
     existing_constraint = await ConstraintModel.find_one({
-        "reference.id": constraint.reference.id
+        "constraint.reference.id": constraint.reference.id
     })
 
     if existing_constraint:
@@ -65,9 +69,22 @@ async def update_constraint(entity_id: UUID, new_constraint: ConstraintSchema) -
             detail="Constraint not found in the USS database"
         )
 
-    # Update the constraint details
-    constraint.details = new_constraint.details
-    constraint.reference = new_constraint.reference
+    constraint.constraint = new_constraint
 
     return await constraint.save()
     
+async def notify_subscribers(
+        subscribers: List[SubscriptionBaseSchema],
+        constraint_id: UUID,
+        constraint: Optional[ConstraintSchema],
+
+):
+    dss = DSSService()
+    for subscription in subscribers:
+        subscription_response = await dss.get_subscription(subscription_id=subscription.subscription_id)
+        uss = USSService(base_url=subscription_response.subscription.uss_base_url)
+        await uss.notify_constraint(
+            subscription=subscription,
+            constraint_id=constraint_id,
+            constraint=constraint,
+        )

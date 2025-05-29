@@ -1,10 +1,9 @@
 from beanie import Document
 
-from schemas.constraint import ConstraintDetailSchema, ConstraintReferenceSchema
+from schemas.constraint import ConstraintSchema
 
 class ConstraintModel(Document):
-    reference: ConstraintReferenceSchema
-    details: ConstraintDetailSchema
+    constraint: ConstraintSchema
 
     class Settings:
         name = "constraint"

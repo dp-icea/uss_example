@@ -1,12 +1,9 @@
 from typing import List, Any
-from enum import Enum
-from uuid import UUID
 from pydantic import BaseModel, HttpUrl
 
 from schemas.area_of_interest import AreaOfInterestSchema
-from schemas.time_point import TimePoint
 from schemas.constraint import ConstraintReferenceSchema
-from schema_types.constraint import ConstraintUSSAvailability, ConstraintState
+from schema_types.subscription import SubscriptionBaseSchema
 
 class ConstraintReferenceQueryRequest(BaseModel):
     area_of_interest: AreaOfInterestSchema
@@ -20,11 +17,11 @@ class ConstraintReferenceCreateRequest(BaseModel):
     uss_base_url: HttpUrl
 
 class ConstraintReferenceCreateResponse(BaseModel):
-    subscribers: List[Any]
+    subscribers: List[SubscriptionBaseSchema]
     constraint_reference: ConstraintReferenceSchema
 
 class ConstraintReferenceDeleteResponse(BaseModel):
-    subscribers: List[Any]
+    subscribers: List[SubscriptionBaseSchema]
     constraint_reference: ConstraintReferenceSchema
 
 class ConstraintReferenceUpdateRequest(BaseModel):
@@ -32,6 +29,6 @@ class ConstraintReferenceUpdateRequest(BaseModel):
     uss_base_url: HttpUrl
 
 class ConstraintReferenceUpdateResponse(BaseModel):
-    subscribers: List[Any]
+    subscribers: List[SubscriptionBaseSchema]
     constraint_reference: ConstraintReferenceSchema
 

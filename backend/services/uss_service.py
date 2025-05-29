@@ -6,6 +6,7 @@ from pydantic import HttpUrl
 
 from config.config import Settings
 from config.config import Settings
+from schemas.constraint import ConstraintNotificationRequest, ConstraintSchema
 from services.auth_service import AuthAsyncClient
 from schemas.operational_intent import (
     OperationalIntentGetResponse, 
@@ -81,5 +82,31 @@ class USSService:
                 ).model_dump(mode="json"),
             )
 
+    async def notify_constraint(self, subscription: SubscriptionBaseSchema, constraint_id: UUID, constraint: Optional[ConstraintSchema]) -> None:
+        """
+        Notify the USS about an operational intent.
+        """
+
+        body = ConstraintNotificationRequest(
+            constraint_id=constraint_id,
+            constraint=constraint,
+            subscriptions=[subscription],
+        )
+
+        response = await self._client.request(
+            "post",
+            "/uss/v1/constraints",
+            json=body.model_dump(mode="json"),
+            scope=Scope.CONSTRAINT_MANAGEMENT,
+        )
+
+        if response.status_code != HTTPStatus.NO_CONTENT.value:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=ResponseError(
+                    message=f"Error notifying USS {self._aud} at {self._base_url} about operational intent.",
+                    data=response.json(),
+                ).model_dump(mode="json"),
+            )
 
 
