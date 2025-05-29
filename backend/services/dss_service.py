@@ -7,6 +7,8 @@ from pydantic import HttpUrl
 
 from config.config import Settings
 from config.config import Settings
+from schema_types.availability import USSAvailability
+from schemas.availability import USSAvailabilityRequest, USSAvailabilityResponse
 from schemas.constraint import ConstraintSchema
 from services.auth_service import AuthAsyncClient
 from schema_types.auth import Audition, Scope
@@ -17,6 +19,11 @@ from schema_types.subscription import NewSubscriptionSchema
 from schemas.area_of_interest import AreaOfInterestSchema
 from schemas.operational_intent import OperationalIntentSchema
 from schemas.error import ResponseError
+from schemas.report import (
+    ExchangeSchema,
+    ReportRequest,
+    ReportResponse,
+)
 from schemas.subscription import (
     SubscriptionCreateRequest,
     SubscriptionCreateResponse,
@@ -48,9 +55,11 @@ class DSSService:
         
         assert settings.DSS_URL, "DSS_URL must be set in the environment variables."
         assert settings.DOMAIN, "DOMAIN must be set in the environment variables."
+        assert settings.MANAGER, "MANAGER must be set in the environment variables."
 
         self._base_url: str = settings.DSS_URL
         self._app_domain: str = settings.DOMAIN
+        self._manager: str = settings.MANAGER
 
         self._client = AuthAsyncClient(base_url=self._base_url, aud=Audition.DSS.value)
 
@@ -353,6 +362,57 @@ class DSSService:
 
         return SubscriptionGetResponse.model_validate(response.json())
 
-    async def make_report(self) -> None:
-        pass
+    async def set_availability(self, availability: USSAvailability) -> USSAvailabilityResponse:
+        """
+        Set the USS availability in the DSS.
+        """
+        body = USSAvailabilityRequest(
+            old_version="",
+            availability=availability,
+        )
+
+        response = await self._client.request(
+            "post",
+            f"/uss_availability/{self._manager}",
+            scope=Scope.AVAILABILITY_ARBITRATION,
+            json=body.model_dump(mode="json"),
+        )
+
+        if response.status_code != HTTPStatus.OK.value:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=ResponseError(
+                    message="Error setting USS availability in the DSS.",
+                    data=response.json(),
+                ).model_dump(mode="json"),
+            )
+
+        return USSAvailabilityResponse.model_validate(response.json())
+
+    async def make_report(self, exchange: ExchangeSchema) -> ReportResponse:
+        """
+        Make a report in the DSS.
+        """
+        body = ReportRequest(
+            report_id=None,
+            exchange=exchange,
+        )
+
+        response = await self._client.request(
+            "post",
+            "/reports",
+            scope=Scope.CONFORMANCE_MONITORING_SA,
+            json=body.model_dump(mode="json"),
+        )
+
+        if response.status_code != HTTPStatus.CREATED.value:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=ResponseError(
+                    message="Error making report in the DSS.",
+                    data=response.json(),
+                ).model_dump(mode="json"),
+            )
+
+        return ReportResponse.model_validate(response.json())
 

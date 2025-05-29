@@ -20,6 +20,11 @@ class ExchangeSchema(BaseModel):
     response_code: int
     problem: str
 
-class DSSReportRequest(BaseModel):
+class ReportRequest(BaseModel):
     report_id: Optional[str]
     exchange: ExchangeSchema
+
+class ReportResponse(BaseModel):
+    report_id: str
+    exchange: ExchangeSchema
+

@@ -7,7 +7,7 @@ from models.constraint import ConstraintModel
 from services.dss_service import DSSService
 from services.uss_service import USSService
 from schemas.constraint import ConstraintSchema
-from schema_types.subscription import SubscriptionBaseSchema
+from schema_types.subscription import SubscriberSchema, SubscriptionBaseSchema
 
 async def get_constraint(entity_id: UUID) -> ConstraintModel:
     """
@@ -74,7 +74,7 @@ async def update_constraint(entity_id: UUID, new_constraint: ConstraintSchema) -
     return await constraint.save()
     
 async def notify_subscribers(
-        subscribers: List[SubscriptionBaseSchema],
+        subscribers: List[SubscriberSchema],
         constraint_id: UUID,
         constraint: Optional[ConstraintSchema],
 

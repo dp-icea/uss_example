@@ -63,6 +63,7 @@ Logs
   - planning_attempts
   - operational_intent_positions
   - constraint_provider_associations
+- Add a way to retrieve the logs as an endpoint
 
 User Interface
 

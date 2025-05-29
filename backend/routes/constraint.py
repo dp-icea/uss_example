@@ -2,6 +2,7 @@ from http import HTTPStatus
 from uuid import UUID
 from fastapi import APIRouter, HTTPException
 
+from config.logger import MessageLogger
 from controllers import constraint as constraint_controller
 from schemas.constraint import ConstraintNotificationRequest
 from services.dss_service import DSSService
@@ -17,7 +18,24 @@ router = APIRouter()
 )
 async def handle_constraint_notification(
     notification: ConstraintNotificationRequest,
-): pass
+): 
+    """
+    Receive notification of new constraints in the area
+    """
+
+    if notification.constraint is None:
+        # If the constraint is not provided, we cannot process the notification
+        MessageLogger.log(
+            f"Constraint removed",
+            data=notification.model_dump(mode="json"),
+        )
+        return
+
+    # Log the received notification
+    MessageLogger.log(
+        f"Constraint changed",
+        data=notification.model_dump(mode="json"),
+    )
 
 @router.get(
     "/{entity_id}",

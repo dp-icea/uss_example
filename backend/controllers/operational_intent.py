@@ -7,7 +7,7 @@ from models.operational_intent import OperationalIntentModel
 from services.dss_service import DSSService
 from services.uss_service import USSService
 from schemas.operational_intent import OperationalIntentSchema
-from schema_types.subscription import SubscriptionBaseSchema
+from schema_types.subscription import SubscriberSchema, SubscriptionBaseSchema
 from schemas.area_of_interest import AreaOfInterestSchema
 from schema_types.operational_intent import OperationalIntentState
 from schema_types.ovn import ovn
@@ -121,7 +121,7 @@ async def get_close_ovns(areas_of_interest: List[AreaOfInterestSchema]) -> List[
     return keys
 
 async def notify_subscribers(
-        subscribers: List[SubscriptionBaseSchema],
+        subscribers: List[SubscriberSchema s],
         operational_intent_id: UUID,
         operational_intent: Optional[OperationalIntentSchema],
 

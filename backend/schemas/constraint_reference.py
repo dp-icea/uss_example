@@ -3,7 +3,7 @@ from pydantic import BaseModel, HttpUrl
 
 from schemas.area_of_interest import AreaOfInterestSchema
 from schemas.constraint import ConstraintReferenceSchema
-from schema_types.subscription import SubscriptionBaseSchema
+from schema_types.subscription import SubscriberSchema, SubscriptionBaseSchema
 
 class ConstraintReferenceQueryRequest(BaseModel):
     area_of_interest: AreaOfInterestSchema
@@ -17,11 +17,11 @@ class ConstraintReferenceCreateRequest(BaseModel):
     uss_base_url: HttpUrl
 
 class ConstraintReferenceCreateResponse(BaseModel):
-    subscribers: List[SubscriptionBaseSchema]
+    subscribers: List[SubscriberSchema]
     constraint_reference: ConstraintReferenceSchema
 
 class ConstraintReferenceDeleteResponse(BaseModel):
-    subscribers: List[SubscriptionBaseSchema]
+    subscribers: List[SubscriberSchema]
     constraint_reference: ConstraintReferenceSchema
 
 class ConstraintReferenceUpdateRequest(BaseModel):
@@ -29,6 +29,6 @@ class ConstraintReferenceUpdateRequest(BaseModel):
     uss_base_url: HttpUrl
 
 class ConstraintReferenceUpdateResponse(BaseModel):
-    subscribers: List[SubscriptionBaseSchema]
+    subscribers: List[SubscriberSchema]
     constraint_reference: ConstraintReferenceSchema
 

@@ -9,3 +9,7 @@ class NewSubscriptionSchema(BaseModel):
 class SubscriptionBaseSchema(BaseModel):
     subscription_id: UUID
     notification_index: int
+
+class SubscriberSchema(BaseModel):
+    subscriptions: List[SubscriptionBaseSchema]
+    uss_base_url: HttpUrl

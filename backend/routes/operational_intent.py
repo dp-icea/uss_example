@@ -4,6 +4,7 @@ from uuid import UUID
 from datetime import timedelta
 from fastapi import APIRouter
 
+from config.logger import MessageLogger
 from utils.parse_dict import parse_dict
 import controllers.operational_intent as operational_intent_controller
 from services.dss_service import DSSService
@@ -20,7 +21,24 @@ router = APIRouter()
 )
 async def handle_operational_intent_notification(
     notification: OperationalIntentNotificationRequest,
-): pass
+):
+    """
+    Receive notification of changed operational details
+    """
+
+    if notification.operational_intent is None:
+        # If the operational intent is not provided, we cannot process the notification
+        MessageLogger.log(
+            f"Operational intent removed",
+            data=notification.model_dump(mode="json"),
+        )
+        return
+
+    # Log the received notification
+    MessageLogger.log(
+        f"Operational intent changed",
+        data=notification.model_dump(mode="json"),
+    )
 
 # TODO: Add a Depends function to validate the aud parameter in the JWT tokenm 
 #   and validating the signature with the public key

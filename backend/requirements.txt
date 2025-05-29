@@ -9,3 +9,4 @@ pydantic-settings==2.9.1
 pyjwt==2.10.1
 jmespath==1.0.1
 cryptography==45.0.2
+loguru==0.7.3

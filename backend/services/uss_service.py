@@ -8,6 +8,11 @@ from config.config import Settings
 from config.config import Settings
 from schemas.constraint import ConstraintNotificationRequest, ConstraintSchema
 from services.auth_service import AuthAsyncClient
+from schemas.report import (
+    ExchangeSchema,
+    ReportRequest,
+    ReportResponse,
+)
 from schemas.operational_intent import (
     OperationalIntentGetResponse, 
     OperationalIntentSchema,
@@ -109,4 +114,30 @@ class USSService:
                 ).model_dump(mode="json"),
             )
 
+    async def make_report(self, exchange: ExchangeSchema) -> ReportResponse:
+        """
+        Make a report in the DSS.
+        """
+        body = ReportRequest(
+            report_id=None,
+            exchange=exchange,
+        )
+
+        response = await self._client.request(
+            "post",
+            "/uss/v1/reports",
+            scope=Scope.CONFORMANCE_MONITORING_SA,
+            json=body.model_dump(mode="json"),
+        )
+
+        if response.status_code != HTTPStatus.CREATED.value:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=ResponseError(
+                    message="Error making report in the DSS.",
+                    data=response.json(),
+                ).model_dump(mode="json"),
+            )
+
+        return ReportResponse.model_validate(response.json())
 
