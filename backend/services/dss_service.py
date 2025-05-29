@@ -352,3 +352,7 @@ class DSSService:
             )
 
         return SubscriptionGetResponse.model_validate(response.json())
+
+    async def make_report(self) -> None:
+        pass
+

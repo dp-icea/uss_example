@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime, timezone
 
-class TimePoint(BaseModel):
+class DatetimeSchema(BaseModel):
     value: datetime
     format: str
 

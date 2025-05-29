@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Any, Optional, List
 from pydantic import BaseModel, HttpUrl
 
-from schemas.time_point import TimePoint
+from schema_types.datetime import DatetimeSchema
 from schemas.area_of_interest import AreaOfInterestSchema
 from schema_types.subscription import SubscriptionBaseSchema
 from schema_types.constraint import ConstraintUSSAvailability, ConstraintState
@@ -19,8 +19,8 @@ class ConstraintDetailSchema(BaseModel):
 class ConstraintReferenceSchema(BaseModel):
     id: UUID
     manager: str
-    time_end: TimePoint
-    time_start: TimePoint
+    time_end: DatetimeSchema
+    time_start: DatetimeSchema
     uss_availability: ConstraintUSSAvailability
     uss_base_url: HttpUrl
     version: int

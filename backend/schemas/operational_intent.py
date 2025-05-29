@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Any, Optional, List
 from pydantic import BaseModel, HttpUrl
 
-from schemas.time_point import TimePoint
+from schema_types.datetime import DatetimeSchema
 from schemas.area_of_interest import AreaOfInterestSchema
 from schema_types.subscription import SubscriptionBaseSchema
 from schema_types.operational_intent import (
@@ -24,8 +24,8 @@ class OperationalIntentReferenceSchema(BaseModel):
     version: int
     state: OperationalIntentState
     ovn: str
-    time_start: TimePoint
-    time_end: TimePoint
+    time_start: DatetimeSchema
+    time_end: DatetimeSchema
     uss_base_url: HttpUrl
     subscription_id: UUID
 
