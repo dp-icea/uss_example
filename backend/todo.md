@@ -1,6 +1,5 @@
 # TODO
 
-```
 Flight Plan
 X Register flight plan
     X Register a flight plan without constraint
@@ -39,19 +38,39 @@ X Constraint Endpoints
 Subscription
 X Add subscription to an area
 X Get subscription
-- When handling operational intent delete, notify the subscribers
-- Receive subscription notifications
-    - ERROR: Modify the current endpoints that consider the post endpoint as
+X When handling operational intent delete, notify the subscribers
+X Receive subscription notifications
+    X ERROR: Modify the current endpoints that consider the post endpoint as
         self endpoints
-- Send subscription notifications (When creating a flight)
+X Send subscription notifications (When creating a flight)
+- Implement webhook on notification to the user (Make the frontend first)
 
-User Auth
+Reports
+- Handle DSS reports
+- Handle USS reports
+
+USS availability
+- Trigger DSS availability endpoint on startup
+- Trigger DSS availability endpoint on shutdown
+- Verify if another USS is available before contacting it
+
+Logs
+- Add tracking of the following operations
+  - messages
+  - operator_notifications
+  - operator_inputs
+  - operator_associations
+  - planning_attempts
+  - operational_intent_positions
+  - constraint_provider_associations
+
+User Interface
+
+User Auth (?)
 - Add User registration (What information should be provided?)
     - Add User token generation
     - Retrieve user information from a flight plan
 - User Websocket to transmit real-time information in active flights
 
-Refactor
+Refactor (?)
 - Refactor similarities OIR and CR
-
-```
