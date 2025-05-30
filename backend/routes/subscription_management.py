@@ -16,7 +16,7 @@ DEFAULT_CONSTRAINT_TYPE = "uss.icea.non_utm_aircraft_operations"
 
 @router.put(
     "/",
-    response_description="Add a new subcription",
+    response_description="Add a new subscription",
     status_code=HTTPStatus.CREATED.value,
 )
 async def add_subscription(

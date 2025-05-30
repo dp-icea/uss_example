@@ -1,7 +1,8 @@
 from http import HTTPStatus
 from uuid import UUID
 from fastapi import HTTPException
-from typing import Optional
+from pprint import pprint
+from typing import Optional, List
 from pydantic import HttpUrl
 
 from config.config import Settings
@@ -38,7 +39,7 @@ class USSService:
     async def close(self):
         await self._client.aclose()
 
-    async def query_operational_intent(self, entity_id: UUID) -> OperationalIntentGetResponse:
+    async def get_operational_intent(self, entity_id: UUID) -> OperationalIntentGetResponse:
         """
         Query the operational intent from another USS that owns the entity.
         """
@@ -54,13 +55,15 @@ class USSService:
                 status_code=response.status_code,
                 detail=ResponseError(
                     message=f"Error querying USS {self._aud} at {self._base_url} for operational intent.",
-                    data=response.json(),
+                    data=response.json() if response.content else None,
                 ).model_dump(mode="json"),
             )
 
+        pprint(response.json())
+
         return OperationalIntentGetResponse.model_validate(response.json())
 
-    async def notify_operational_intent(self, subscription: SubscriptionBaseSchema, operational_intent_id: UUID, operational_intent: Optional[OperationalIntentSchema]) -> None:
+    async def notify_operational_intent(self, subscriptions: List[SubscriptionBaseSchema], operational_intent_id: UUID, operational_intent: Optional[OperationalIntentSchema]) -> None:
         """
         Notify the USS about an operational intent.
         """
@@ -68,22 +71,25 @@ class USSService:
         body = OperationalIntentNotificationRequest(
             operational_intent_id=operational_intent_id,
             operational_intent=operational_intent,
-            subscriptions=[subscription],
+            subscriptions=subscriptions,
         )
 
         response = await self._client.request(
             "post",
-            "/uss/v1/operational_intents",
+            "/uss/v1/operational_intents/",
             json=body.model_dump(mode="json"),
             scope=Scope.STRATEGIC_COORDINATION,
         )
 
         if response.status_code != HTTPStatus.NO_CONTENT.value:
+            # Print the raw response for debugging purposes
+            print(f"Response content: {response.headers}")
+
             raise HTTPException(
                 status_code=response.status_code,
                 detail=ResponseError(
                     message=f"Error notifying USS {self._aud} at {self._base_url} about operational intent.",
-                    data=response.json(),
+                    data=response.json() if response.content else None,
                 ).model_dump(mode="json"),
             )
 
@@ -100,7 +106,7 @@ class USSService:
 
         response = await self._client.request(
             "post",
-            "/uss/v1/constraints",
+            "/uss/v1/constraints/",
             json=body.model_dump(mode="json"),
             scope=Scope.CONSTRAINT_MANAGEMENT,
         )
@@ -110,7 +116,7 @@ class USSService:
                 status_code=response.status_code,
                 detail=ResponseError(
                     message=f"Error notifying USS {self._aud} at {self._base_url} about operational intent.",
-                    data=response.json(),
+                    data=response.json() if response.content else None,
                 ).model_dump(mode="json"),
             )
 
@@ -125,7 +131,7 @@ class USSService:
 
         response = await self._client.request(
             "post",
-            "/uss/v1/reports",
+            "/uss/v1/reports/",
             scope=Scope.CONFORMANCE_MONITORING_SA,
             json=body.model_dump(mode="json"),
         )
@@ -135,7 +141,7 @@ class USSService:
                 status_code=response.status_code,
                 detail=ResponseError(
                     message="Error making report in the DSS.",
-                    data=response.json(),
+                    data=response.json() if response.content else None,
                 ).model_dump(mode="json"),
             )
 

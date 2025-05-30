@@ -117,7 +117,7 @@ class AuthService:
                 status_code=response.status_code,
                 detail=ResponseError(
                     message="Error getting DSS token.",
-                    data=response.json(),
+                    data=response.json() if response.content else None,
                 ).model_dump(mode="json"),
             )
 

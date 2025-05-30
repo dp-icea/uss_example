@@ -53,12 +53,12 @@ async def delete_operational_intent(entity_id: UUID) -> OperationalIntentModel:
     operational_intent.reference.state = OperationalIntentState.DELETED
     return await operational_intent.save()
 
-async def create_operational_intent(operational_intent: OperationalIntentModel) -> OperationalIntentModel:
+async def create_operational_intent(operational_intent_model: OperationalIntentModel) -> OperationalIntentModel:
     """
     Create a new operational intent
     """
     # New entity id created to identify the operational intent
-    entity_id = operational_intent.reference.id
+    entity_id = operational_intent_model.operational_intent.reference.id
 
     if await entity_id_exists(entity_id):
         raise HTTPException(
@@ -66,7 +66,7 @@ async def create_operational_intent(operational_intent: OperationalIntentModel) 
             detail="Operational intent with this entity ID already exists"
         )
 
-    return await operational_intent.save()
+    return await operational_intent_model.save()
 
 async def update_operational_intent(entity_id: UUID, operational_intent: OperationalIntentSchema) -> OperationalIntentModel:
     """
@@ -95,16 +95,17 @@ async def get_close_ovns(areas_of_interest: List[AreaOfInterestSchema]) -> List[
     # Verify constraints
     dss = DSSService()
     for area_of_interest in areas_of_interest:
-        constraint_references = await dss.query_constraint_references(
-            area_of_interest=area_of_interest
-        )
-        if len(constraint_references.constraint_references) != 0:
-            for constraint in constraint_references.constraint_references:
-                uss = USSService(base_url=constraint.uss_base_url)
-                original_constraint = await uss.query_operational_intent(
-                    entity_id=constraint.id,
-                )
-                keys.append(original_constraint.operational_intent.reference.ovn)
+        # constraint_references = await dss.query_constraint_references(
+        #     area_of_interest=area_of_interest
+        # )
+        # if len(constraint_references.constraint_references) != 0:
+        #     for constraint in constraint_references.constraint_references:
+        #         uss = USSService(base_url=constraint.uss_base_url)
+        #         # TODO: hey hey hey!! This is wrong
+        #         original_constraint = await uss.query_operational_intent(
+        #             entity_id=constraint.id,
+        #         )
+        #         keys.append(original_constraint.operational_intent.reference.ovn)
 
         # Verify other Operational Intents
         query_operations = await dss.query_operational_intent_references(
@@ -113,7 +114,7 @@ async def get_close_ovns(areas_of_interest: List[AreaOfInterestSchema]) -> List[
         if len(query_operations.operational_intent_references) != 0:
             for operation in query_operations.operational_intent_references:
                 uss = USSService(base_url=operation.uss_base_url)
-                original_operation = await uss.query_operational_intent(
+                original_operation = await uss.get_operational_intent(
                     entity_id=operation.id,
                 )
                 keys.append(original_operation.operational_intent.reference.ovn)
@@ -121,17 +122,15 @@ async def get_close_ovns(areas_of_interest: List[AreaOfInterestSchema]) -> List[
     return keys
 
 async def notify_subscribers(
-        subscribers: List[SubscriberSchema s],
+        subscribers: List[SubscriberSchema],
         operational_intent_id: UUID,
         operational_intent: Optional[OperationalIntentSchema],
 
 ):
-    dss = DSSService()
-    for subscription in subscribers:
-        subscription_response = await dss.get_subscription(subscription_id=subscription.subscription_id)
-        uss = USSService(base_url=subscription_response.subscription.uss_base_url)
+    for subscriber in subscribers:
+        uss = USSService(base_url=subscriber.uss_base_url)
         await uss.notify_operational_intent(
-            subscription=subscription,
+            subscriptions=subscriber.subscriptions,
             operational_intent_id=operational_intent_id,
             operational_intent=operational_intent,
         )

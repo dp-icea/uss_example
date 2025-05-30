@@ -79,7 +79,7 @@ async def create_flight_plan(
     )
 
     await operational_intent_controller.create_operational_intent(
-        operational_intent=operation_model,
+        operational_intent_model=operation_model,
     )
 
     await operational_intent_controller.notify_subscribers(
@@ -135,7 +135,7 @@ async def create_flight_plan_with_conflict(
     )
 
     await operational_intent_controller.create_operational_intent(
-        operational_intent=operation_model,
+        operational_intent_model=operation_model,
     )
 
     await operational_intent_controller.notify_subscribers(

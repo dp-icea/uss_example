@@ -87,7 +87,7 @@ class DSSService:
                 status_code=response.status_code,
                 detail=ResponseError(
                     message="Error querying DSS constraint references.",
-                    data=response.json(),
+                    data=response.json() if response.content else None,
                 ).model_dump(mode="json"),
             )
 
@@ -113,7 +113,7 @@ class DSSService:
                 status_code=response.status_code,
                 detail=ResponseError(
                     message="Error querying DSS operational intents.",
-                    data=response.json(),
+                    data=response.json() if response.content else None,
                 ).model_dump(mode="json"),
             )
 
@@ -150,7 +150,7 @@ class DSSService:
                 status_code=response.status_code,
                 detail=ResponseError(
                     message="Error creating operational intent.",
-                    data=response.json(),
+                    data=response.json() if response.content else None,
                 ).model_dump(mode="json"),
             )
 
@@ -172,7 +172,7 @@ class DSSService:
                 status_code=response.status_code,
                 detail=ResponseError(
                     message="Error getting operational intent reference.",
-                    data=response.json(),
+                    data=response.json() if response.content else None,
                 ).model_dump(mode="json"),
             )
 
@@ -193,7 +193,7 @@ class DSSService:
                 status_code=response.status_code,
                 detail=ResponseError(
                     message="Error deleting operational intent reference in the DSS.",
-                    data=response.json(),
+                    data=response.json() if response.content else None,
                 ).model_dump(mode="json"),
             )
 
@@ -229,7 +229,7 @@ class DSSService:
                 status_code=response.status_code,
                 detail=ResponseError(
                     message="Error updating operational intent reference in the DSS.",
-                    data=response.json(),
+                    data=response.json() if response.content else None,
                 ).model_dump(mode="json"),
             )
 
@@ -257,7 +257,7 @@ class DSSService:
                 status_code=response.status_code,
                 detail=ResponseError(
                     message="Error creating constraint in the DSS.",
-                    data=response.json(),
+                    data=response.json() if response.content else None,
                 ).model_dump(mode="json"),
             )
 
@@ -278,7 +278,7 @@ class DSSService:
                 status_code=response.status_code,
                 detail=ResponseError(
                     message="Error deleting constraint reference in the DSS.",
-                    data=response.json(),
+                    data=response.json() if response.content else None,
                 ).model_dump(mode="json"),
             )
 
@@ -306,7 +306,7 @@ class DSSService:
                 status_code=response.status_code,
                 detail=ResponseError(
                     message="Error updating constraint reference in the DSS.",
-                    data=response.json(),
+                    data=response.json() if response.content else None,
                 ).model_dump(mode="json"),
             )
 
@@ -335,7 +335,7 @@ class DSSService:
                 status_code=response.status_code,
                 detail=ResponseError(
                     message="Error querying DSS subscriptions.",
-                    data=response.json(),
+                    data=response.json() if response.content else None,
                 ).model_dump(mode="json"),
             )
 
@@ -356,7 +356,7 @@ class DSSService:
                 status_code=response.status_code,
                 detail=ResponseError(
                     message="Error getting subscription from the DSS.",
-                    data=response.json(),
+                    data=response.json() if response.content else None,
                 ).model_dump(mode="json"),
             )
 
@@ -383,7 +383,7 @@ class DSSService:
                 status_code=response.status_code,
                 detail=ResponseError(
                     message="Error setting USS availability in the DSS.",
-                    data=response.json(),
+                    data=response.json() if response.content else None,
                 ).model_dump(mode="json"),
             )
 
@@ -410,7 +410,7 @@ class DSSService:
                 status_code=response.status_code,
                 detail=ResponseError(
                     message="Error making report in the DSS.",
-                    data=response.json(),
+                    data=response.json() if response.content else None,
                 ).model_dump(mode="json"),
             )
 

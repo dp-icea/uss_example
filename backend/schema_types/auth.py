@@ -9,4 +9,5 @@ class Scope(str, Enum):
     CONSTRAINT_MANAGEMENT = "utm.constraint_management"
     CONFORMANCE_MONITORING_SA = "utm.conformance_monitoring_sa"
     AVAILABILITY_ARBITRATION = "utm.availability_arbitration"
+    AVIATION_AUTHORITY = "utm.aviation_authority"
 

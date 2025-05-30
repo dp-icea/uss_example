@@ -65,7 +65,11 @@ Logs
   - constraint_provider_associations
 - Add a way to retrieve the logs as an endpoint
 
+Unit Testing
+- Add unit testing to the components of the API
+
 User Interface
+- 3d visualization software to select a cube in space
 
 User Auth (?)
 - Add User registration (What information should be provided?)
