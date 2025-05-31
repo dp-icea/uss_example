@@ -24,34 +24,34 @@ async def get_operational_intent(entity_id: UUID) -> OperationalIntentModel:
     """
     Retrieve the specified operational intent details
     """
-    operational_intent = await OperationalIntentModel.find_one({
+    operational_intent_model = await OperationalIntentModel.find_one({
         "operational_intent.reference.id": entity_id
     })
 
-    if operational_intent is None:
+    if operational_intent_model is None:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND.value,
             detail="Operational intent not found"
         )
-    return operational_intent
+    return operational_intent_model
 
 async def delete_operational_intent(entity_id: UUID) -> OperationalIntentModel:
     """
     Delete the specified operational intent
     """
 
-    operational_intent = await OperationalIntentModel.find_one({
+    operational_intent_model = await OperationalIntentModel.find_one({
         "operational_intent.reference.id": entity_id
     })
 
-    if operational_intent is None:
+    if operational_intent_model is None:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND.value,
             detail="Operational intent not found"
         )
 
-    operational_intent.reference.state = OperationalIntentState.DELETED
-    return await operational_intent.save()
+    operational_intent_model.operational_intent.reference.state = OperationalIntentState.DELETED
+    return await operational_intent_model.save()
 
 async def create_operational_intent(operational_intent_model: OperationalIntentModel) -> OperationalIntentModel:
     """
@@ -95,17 +95,16 @@ async def get_close_ovns(areas_of_interest: List[AreaOfInterestSchema]) -> List[
     # Verify constraints
     dss = DSSService()
     for area_of_interest in areas_of_interest:
-        # constraint_references = await dss.query_constraint_references(
-        #     area_of_interest=area_of_interest
-        # )
-        # if len(constraint_references.constraint_references) != 0:
-        #     for constraint in constraint_references.constraint_references:
-        #         uss = USSService(base_url=constraint.uss_base_url)
-        #         # TODO: hey hey hey!! This is wrong
-        #         original_constraint = await uss.query_operational_intent(
-        #             entity_id=constraint.id,
-        #         )
-        #         keys.append(original_constraint.operational_intent.reference.ovn)
+        constraints_queried = await dss.query_constraint_references(
+            area_of_interest=area_of_interest
+        )
+        if len(constraints_queried.constraint_references) != 0:
+            for constraint in constraints_queried.constraint_references:
+                uss = USSService(base_url=constraint.uss_base_url)
+                original_constraint = await uss.get_constraint(
+                    entity_id=constraint.id,
+                )
+                keys.append(original_constraint.constraint.reference.ovn)
 
         # Verify other Operational Intents
         query_operations = await dss.query_operational_intent_references(

@@ -56,12 +56,12 @@ async def get_operational_intent(
     Retrieve the specified operational intent details
     """
 
-    operational_intent = await operational_intent_controller.get_operational_intent(
+    operational_intent_model = await operational_intent_controller.get_operational_intent(
         entity_id=entity_id,
     )
 
     return {
-        "operational_intent": operational_intent.model_dump(mode="json"),
+        "operational_intent": operational_intent_model.operational_intent.model_dump(mode="json"),
     }
 
 # TODO: Figure out correctly how to inform the USS about real-time telemetry

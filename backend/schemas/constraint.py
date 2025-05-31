@@ -34,3 +34,6 @@ class ConstraintNotificationRequest(BaseModel):
     constraint_id: UUID
     constraint: Optional[ConstraintSchema]
     subscriptions: List[SubscriptionBaseSchema]
+
+class ConstraintGetResponse(BaseModel):
+    constraint: ConstraintSchema

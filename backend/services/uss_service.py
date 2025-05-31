@@ -7,7 +7,7 @@ from pydantic import HttpUrl
 
 from config.config import Settings
 from config.config import Settings
-from schemas.constraint import ConstraintNotificationRequest, ConstraintSchema
+from schemas.constraint import ConstraintGetResponse, ConstraintNotificationRequest, ConstraintSchema
 from services.auth_service import AuthAsyncClient
 from schemas.report import (
     ExchangeSchema,
@@ -60,8 +60,31 @@ class USSService:
             )
 
         pprint(response.json())
-
         return OperationalIntentGetResponse.model_validate(response.json())
+
+    async def get_constraint(self, entity_id: UUID) -> ConstraintGetResponse:
+        """
+        Query the constraint from another USS that owns the entity.
+        """
+
+        response = await self._client.request(
+            "get",
+            f"/uss/v1/constraints/{entity_id}",
+            scope=Scope.CONSTRAINT_PROCESSING,
+        )
+
+        if response.status_code != HTTPStatus.OK.value:
+            raise HTTPException(
+                status_code=response.status_code,
+                detail=ResponseError(
+                    message=f"Error querying USS {self._aud} at {self._base_url} for constraint.",
+                    data=response.json() if response.content else None,
+                ).model_dump(mode="json"),
+            )
+
+        pprint(response.json())
+
+        return ConstraintGetResponse.model_validate(response.json())
 
     async def notify_operational_intent(self, subscriptions: List[SubscriptionBaseSchema], operational_intent_id: UUID, operational_intent: Optional[OperationalIntentSchema]) -> None:
         """
@@ -93,7 +116,7 @@ class USSService:
                 ).model_dump(mode="json"),
             )
 
-    async def notify_constraint(self, subscription: SubscriptionBaseSchema, constraint_id: UUID, constraint: Optional[ConstraintSchema]) -> None:
+    async def notify_constraint(self, subscriptions: List[SubscriptionBaseSchema], constraint_id: UUID, constraint: Optional[ConstraintSchema]) -> None:
         """
         Notify the USS about an operational intent.
         """
@@ -101,7 +124,7 @@ class USSService:
         body = ConstraintNotificationRequest(
             constraint_id=constraint_id,
             constraint=constraint,
-            subscriptions=[subscription],
+            subscriptions=subscriptions,
         )
 
         response = await self._client.request(

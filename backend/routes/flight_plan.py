@@ -241,8 +241,8 @@ async def delete_flight_plan(
     dss = DSSService()
 
     operational_intent_model = await operational_intent_controller.get_operational_intent(
-            entity_id=entity_id,
-        )
+        entity_id=entity_id,
+    )
 
     operational_intent = operational_intent_model.operational_intent
 

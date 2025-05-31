@@ -41,7 +41,7 @@ async def add_constraint(
     )
 
     await constraint_controller.create_constraint(
-        constraint=ConstraintModel(
+        constraint_model=ConstraintModel(
             constraint=constraint,
         )
     )
@@ -71,16 +71,16 @@ async def get_constraint(
     Retrieve the specified constraint details.
     """
     # Verify if the Constraint exists
-    constraint = await constraint_controller.get_constraint(entity_id=entity_id)
+    constraint_model = await constraint_controller.get_constraint(entity_id=entity_id)
 
-    if constraint is None:
+    if constraint_model is None:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND.value,
             detail="Constraint not found in the USS database"
         )
 
     return {
-        "constraint": constraint.model_dump(mode="json"),
+        "constraint": constraint_model.constraint.model_dump(mode="json"),
     }
 
 @router.delete(
