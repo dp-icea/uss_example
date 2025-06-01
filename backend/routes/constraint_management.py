@@ -3,6 +3,7 @@ from uuid import uuid4, UUID
 from typing import List
 from fastapi import APIRouter, HTTPException
 
+from config.logger import OperatorInputLogger, log_route_handler
 from models.constraint import ConstraintModel
 from schemas.response import Response
 from schemas.constraint import ConstraintDetailSchema, ConstraintSchema
@@ -19,6 +20,7 @@ DEFAULT_CONSTRAINT_TYPE = "uss.icea.non_utm_aircraft_operations"
     response_description="Add a new constraint",
     status_code=HTTPStatus.CREATED.value,
 )
+@log_route_handler(OperatorInputLogger, "Constraint Added")
 async def add_constraint(
     areas_of_interest: List[AreaOfInterestSchema]
 ):
@@ -64,6 +66,7 @@ async def add_constraint(
     response_model=dict,
     status_code=HTTPStatus.OK.value,
 )
+@log_route_handler(OperatorInputLogger, "Constraint Retrieved")
 async def get_constraint(
     entity_id: UUID,
 ):
@@ -88,6 +91,7 @@ async def get_constraint(
     response_description="Delete a constraint",
     status_code=HTTPStatus.NO_CONTENT.value,
 )
+@log_route_handler(OperatorInputLogger, "Constraint Deleted")
 async def delete_constraint(
     entity_id: UUID,
 ):
@@ -119,6 +123,7 @@ async def delete_constraint(
     response_description="Update a constraint",
     status_code=HTTPStatus.OK.value,
 )
+@log_route_handler(OperatorInputLogger, "Constraint Updated")
 async def update_constraint(
     new_constraint: ConstraintSchema,
 ):

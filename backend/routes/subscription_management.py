@@ -4,6 +4,7 @@ from typing import List
 from fastapi import APIRouter, HTTPException
 
 from models.subscription import SubscriptionModel
+from config.logger import OperatorInputLogger, log_route_handler
 from schemas.response import Response
 from schemas.constraint import ConstraintDetailSchema
 from schemas.area_of_interest import AreaOfInterestSchema
@@ -19,6 +20,7 @@ DEFAULT_CONSTRAINT_TYPE = "uss.icea.non_utm_aircraft_operations"
     response_description="Add a new subscription",
     status_code=HTTPStatus.CREATED.value,
 )
+@log_route_handler(OperatorInputLogger, "Subscription Added")
 async def add_subscription(
     area_of_interest: AreaOfInterestSchema
 ):
@@ -42,6 +44,7 @@ async def add_subscription(
     response_description="Get subscription details",
     status_code=HTTPStatus.OK.value,
 )
+@log_route_handler(OperatorInputLogger, "Subscription Retrieved")
 async def get_subscription(subscription_id: UUID):
     """
     Get the details of a subscription by its ID.

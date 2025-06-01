@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Body, HTTPException
+from fastapi import APIRouter, Body, HTTPException, Request
+from functools import wraps
 from typing import List
 from uuid import uuid4, UUID
 from http import HTTPStatus
 
 from controllers import operational_intent as operational_intent_controller
+from config.logger import PlanningAttemptLogger, OperatorInputLogger, log_route_handler
 from models.operational_intent import OperationalIntentModel
 from services.dss_service import DSSService
 from schema_types.operational_intent import OperationalIntentState
@@ -25,6 +27,7 @@ router = APIRouter()
     response_model=Response,
     status_code=HTTPStatus.CREATED.value,
 )
+@log_route_handler(PlanningAttemptLogger, "Flight Created")
 async def create_flight_plan(
     area_of_interest: AreaOfInterestSchema = Body(...),
 ):
@@ -101,13 +104,13 @@ async def create_flight_plan(
     response_model=Response,
     status_code=HTTPStatus.CREATED.value,
 )
+@log_route_handler(PlanningAttemptLogger, "Flight Plan Created With Conflict")
 async def create_flight_plan_with_conflict(
     area_of_interest: AreaOfInterestSchema = Body(...),
 ):
     """
     Create a new operational intent
     """
-
     # New entity id created to identify the operational intent
     entity_id = uuid4()
 
@@ -157,6 +160,7 @@ async def create_flight_plan_with_conflict(
     response_model=Response,
     status_code=HTTPStatus.OK.value,
 )
+@log_route_handler(OperatorInputLogger, "Flight Plan Activated")
 async def activate_flight_plan(
     entity_id: UUID,
 ):
@@ -209,6 +213,7 @@ async def activate_flight_plan(
     response_model=Response,
     status_code=HTTPStatus.OK.value,
 )
+@log_route_handler(OperatorInputLogger, "Flight Plan Retrieved")
 async def get_flight_plan(
     entity_id: UUID,
 ):
@@ -232,6 +237,7 @@ async def get_flight_plan(
     response_model=Response,
     status_code=HTTPStatus.OK.value,
 )
+@log_route_handler(OperatorInputLogger, "Flight Plan Deleted")
 async def delete_flight_plan(
     entity_id: UUID,
 ):
@@ -275,6 +281,7 @@ async def delete_flight_plan(
     response_description="Update the flight plan",
     status_code=HTTPStatus.OK.value,
 )
+@log_route_handler(OperatorInputLogger, "Flight Plan Updated")
 async def update_flight_plan(
     updated_operational_intent: OperationalIntentSchema = Body(...),
 ):
@@ -311,6 +318,7 @@ async def update_flight_plan(
     response_description="Update the flight plan with area conflicts",
     status_code=HTTPStatus.OK.value,
 )
+@log_route_handler(OperatorInputLogger, "Flight Plan Updated With Conflict")
 async def update_flight_plan_with_conflict(
     updated_operational_intent: OperationalIntentSchema = Body(...),
 ):

@@ -56,11 +56,11 @@ USS availability
 
 Logs
 - Add tracking of the following operations
-  - messages
+  X messages
   - operator_notifications
-  - operator_inputs
+  X operator_inputs
   - operator_associations
-  - planning_attempts
+  X planning_attempts
   - operational_intent_positions
   - constraint_provider_associations
 - Add a way to retrieve the logs as an endpoint

@@ -1,4 +1,6 @@
 from threading import Lock
+from fastapi import HTTPException
+from functools import wraps
 from typing import Any
 from datetime import timezone
 import json
@@ -62,6 +64,36 @@ class AppLogger(Logger):
         Log a message at the TRACE level.
         """
         cls.get_instance().trace(message, data=data)
+
+def log_route_handler(Logger: type[AppLogger], action: str):
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            data = {
+                "args": [str(arg) for arg in args],
+                "kwargs": {k: str(v) for k, v in kwargs.items()},
+            }
+
+            try:
+                response = await func(*args, **kwargs)
+
+                data["response"] = response.model_dump(mode="json") if hasattr(response, "model_dump") else response
+                Logger.log(
+                    action,
+                    data = data,
+                )
+                return response
+            except Exception as e:
+                data["error"] = e.model_dump(mode="json") if hasattr(e, "model_dump") else str(e)
+
+                Logger.log(
+                    f"Error during {action}",
+                    data = data,
+                )
+
+                raise e
+        return wrapper
+    return decorator
 
 class MessageLogger(AppLogger):
     NAME = "message"
