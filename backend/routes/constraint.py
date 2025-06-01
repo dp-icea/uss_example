@@ -23,20 +23,19 @@ async def handle_constraint_notification(
     Receive notification of new constraints in the area
     """
 
-    # if notification.constraint is None:
-    #     # If the constraint is not provided, we cannot process the notification
-    #     MessageLogger.log(
-    #         f"Constraint Removed",
-    #         data=notification.model_dump(mode="json"),
-    #     )
-    #     return
-    #
-    # # Log the received notification
-    # MessageLogger.log(
-    #         f"Constraint Changed",
-    #     data=notification.model_dump(mode="json"),
-    # )
-    pass
+    if notification.constraint is None:
+        # If the constraint is not provided, we cannot process the notification
+        MessageLogger.log(
+            f"Constraint Removed",
+            data=notification.model_dump(mode="json"),
+        )
+        return
+
+    # Log the received notification
+    MessageLogger.log(
+            f"Constraint Changed",
+        data=notification.model_dump(mode="json"),
+    )
 
 @router.get(
     "/{entity_id}",

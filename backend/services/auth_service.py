@@ -162,9 +162,26 @@ class AuthService:
             "apikey": self._auth_key,
         }
 
+        MessageLogger.log(
+            f"Requesting new token",
+            data={
+                "aud": aud,
+                "scope": scope.value,
+                "params": params,
+            },
+        )
+
         response = await self._client.get(
             "/token",
             params=params,
+        )
+
+        MessageLogger.log(
+            f"Token response received",
+            data={
+                "status_code": response.status_code,
+                "body": response.json() if response.content else None,
+            },
         )
 
         if response.status_code != 200:

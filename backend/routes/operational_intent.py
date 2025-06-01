@@ -3,6 +3,7 @@ from http import HTTPStatus
 from uuid import UUID
 from datetime import timedelta
 from fastapi import APIRouter
+from pydantic import BaseModel
 
 from config.logger import MessageLogger
 from utils.parse_dict import parse_dict
