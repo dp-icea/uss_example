@@ -1,4 +1,6 @@
 from threading import Lock
+import os
+from typing import List
 from fastapi import HTTPException
 from functools import wraps
 from typing import Any
@@ -42,13 +44,31 @@ class AppLogger(Logger):
             extra={}
         )
         self.add(
-            f"logs/{self.NAME}/{{time:YYYY-MM-DD}}.log",
+            f"{self.get_path()}/{{time:YYYY-MM-DD}}.log",
             rotation="1 day",
             retention="30 days",
             compression="zip",
             level="TRACE",
             format=formatter,
         )
+
+    def get_path(self):
+        """
+        Get the path where the logs are stored.
+        """
+        return f"logs/{self.NAME}"
+
+    def export(self) -> List[str]:
+        """
+        Export the logs to a list of strings.
+        """
+        logs = []
+        for log in sorted(os.listdir(self.get_path())):
+            if log.endswith(".log"):
+                with open(os.path.join(self.get_path(), log), "r") as f:
+                    logs += f.readlines()
+
+        return logs
 
     @classmethod
     def get_instance(cls):
@@ -96,25 +116,19 @@ def log_route_handler(Logger: type[AppLogger], action: str):
     return decorator
 
 class MessageLogger(AppLogger):
-    NAME = "message"
+    NAME = "messages"
 
     def __init__(self):
         super().__init__()
 
 class OperatorInputLogger(AppLogger):
-    NAME = "operator_input"
-
-    def __init__(self):
-        super().__init__()
-
-class OperatorNotificationLogger(AppLogger):
-    NAME = "operator_notification"
+    NAME = "operator_inputs"
 
     def __init__(self):
         super().__init__()
 
 class PlanningAttemptLogger(AppLogger):
-    NAME = "planning_attempt"
+    NAME = "planning_attempts"
 
     def __init__(self):
         super().__init__()
