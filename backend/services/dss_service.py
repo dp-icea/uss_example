@@ -6,7 +6,7 @@ from typing import List
 from pydantic import HttpUrl
 
 from config.config import Settings
-from config.config import Settings
+from config.logger import MessageLogger
 from schema_types.availability import USSAvailability
 from schemas.availability import USSAvailabilityRequest, USSAvailabilityResponse
 from schemas.constraint import ConstraintSchema

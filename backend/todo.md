@@ -65,6 +65,11 @@ Logs
   - constraint_provider_associations
 - Add a way to retrieve the logs as an endpoint
 
+Refactor (?)
+- Refactor similarities OIR and CR
+- Remove status from the response class
+- Remove unecessary parameters from the response given to the user
+
 Unit Testing
 - Add unit testing to the components of the API
 
@@ -77,5 +82,3 @@ User Auth (?)
     - Retrieve user information from a flight plan
 - User Websocket to transmit real-time information in active flights
 
-Refactor (?)
-- Refactor similarities OIR and CR

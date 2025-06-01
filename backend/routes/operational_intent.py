@@ -29,14 +29,14 @@ async def handle_operational_intent_notification(
     if notification.operational_intent is None:
         # If the operational intent is not provided, we cannot process the notification
         MessageLogger.log(
-            f"Operational intent removed",
+            f"Operational Intent Removed",
             data=notification.model_dump(mode="json"),
         )
         return
 
     # Log the received notification
     MessageLogger.log(
-        f"Operational intent changed",
+        f"Operational Intent Changed",
         data=notification.model_dump(mode="json"),
     )
 

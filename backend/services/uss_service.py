@@ -1,7 +1,6 @@
 from http import HTTPStatus
 from uuid import UUID
 from fastapi import HTTPException
-from pprint import pprint
 from typing import Optional, List
 from pydantic import HttpUrl
 
@@ -59,7 +58,6 @@ class USSService:
                 ).model_dump(mode="json"),
             )
 
-        pprint(response.json())
         return OperationalIntentGetResponse.model_validate(response.json())
 
     async def get_constraint(self, entity_id: UUID) -> ConstraintGetResponse:
@@ -81,8 +79,6 @@ class USSService:
                     data=response.json() if response.content else None,
                 ).model_dump(mode="json"),
             )
-
-        pprint(response.json())
 
         return ConstraintGetResponse.model_validate(response.json())
 

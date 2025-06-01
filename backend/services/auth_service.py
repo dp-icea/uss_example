@@ -8,6 +8,7 @@ from threading import Lock
 
 from schemas.error import ResponseError
 from config.config import Settings
+from config.logger import MessageLogger
 from schema_types.auth import Scope
 
 class AuthAsyncClient(httpx.AsyncClient):
@@ -25,7 +26,19 @@ class AuthAsyncClient(httpx.AsyncClient):
             raise ValueError("Scope must be provided in the request for authentication.")
 
         try:
-            return await super().request(
+            MessageLogger.log(
+                f"Message Sent",
+                data = {
+                    "method": method,
+                    "base_url": str(self.base_url),
+                    "url": str(url),
+                    "aud": self._aud,
+                    "scope": scope,
+                    "body": kwargs.get("json", None),
+                },
+            )
+
+            res = await super().request(
                 method,
                 url,
                 auth=ServiceTokenMiddleware(
@@ -34,7 +47,34 @@ class AuthAsyncClient(httpx.AsyncClient):
                 ),
                 **kwargs
             )
+
+            MessageLogger.log(
+                f"Response Received",
+                data = {
+                    "status_code": res.status_code,
+                    "url": str(res.url),
+                    "headers": dict(res.headers),
+                    "body": res.json() if res.content else None,
+                },
+            )
+
+            return res
         except ConnectionRefusedError as e:
+            MessageLogger.log(
+                f"Connection refused",
+                data = {
+                    "request": {
+                        "method": method,
+                        "base_url": str(self.base_url),
+                        "url": str(url),
+                        "aud": self._aud,
+                        "scope": scope,
+                        "body": kwargs.get("json", None),
+                    },
+                    "error": str(e),
+                },
+            )
+
             raise HTTPException(
                 status_code=HTTPStatus.SERVICE_UNAVAILABLE.value,
                 detail=ResponseError(
@@ -43,6 +83,21 @@ class AuthAsyncClient(httpx.AsyncClient):
                 ).model_dump(mode="json"),
             )
         except httpx.RequestError as e:
+            MessageLogger.log(
+                f"Request error",
+                data = {
+                    "request": {
+                        "method": method,
+                        "base_url": str(self.base_url),
+                        "url": str(url),
+                        "aud": self._aud,
+                        "scope": scope,
+                        "body": kwargs.get("json", None),
+                    },
+                    "error": str(e),
+                },
+            )
+
             raise HTTPException(
                 status_code=HTTPStatus.INTERNAL_SERVER_ERROR.value,
                 detail=ResponseError(

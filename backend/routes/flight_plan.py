@@ -16,6 +16,7 @@ from services.uss_service import USSService
 
 router = APIRouter()
 
+
 # TODO: This is provisory. I might have to change for the flight_plan api format
 #   but I still dont understand how they send the area.
 @router.put(

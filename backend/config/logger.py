@@ -16,11 +16,13 @@ def formatter(record):
     record["extra"]["serialized"] = serialize(record)
     return "{extra[serialized]}\n"
 
-class MessageLogger(Logger):
+class AppLogger(Logger):
     """
     Custom logger class that extends loguru's Logger.
     This class can be used to log messages with a specific format.
     """
+    NAME = "app"
+
     _instance = None
     _lock = Lock()
 
@@ -37,9 +39,8 @@ class MessageLogger(Logger):
             patchers=[],
             extra={}
         )
-        # self.remove(0)
         self.add(
-            "logs/messages/{time:YYYY-MM-DD}.log",
+            f"logs/{self.NAME}/{{time:YYYY-MM-DD}}.log",
             rotation="1 day",
             retention="30 days",
             compression="zip",
@@ -62,3 +63,26 @@ class MessageLogger(Logger):
         """
         cls.get_instance().trace(message, data=data)
 
+class MessageLogger(AppLogger):
+    NAME = "message"
+
+    def __init__(self):
+        super().__init__()
+
+class OperatorInputLogger(AppLogger):
+    NAME = "operator_input"
+
+    def __init__(self):
+        super().__init__()
+
+class OperatorNotificationLogger(AppLogger):
+    NAME = "operator_notification"
+
+    def __init__(self):
+        super().__init__()
+
+class PlanningAttemptLogger(AppLogger):
+    NAME = "planning_attempt"
+
+    def __init__(self):
+        super().__init__()
