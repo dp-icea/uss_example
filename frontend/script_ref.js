@@ -28,14 +28,14 @@ function createPoint(worldPosition) {
   return point;
 }
 
-let drawingMode = "line";
+let drawingMode = "polygon";
 function drawShape(positionData) {
   let shape;
   if (drawingMode === "line") {
     shape = viewer.entities.add({
       polyline: {
         positions: positionData,
-        clampToGround: false,
+        clampToGround: false,:VExp
         width: 3,
       },
     });
@@ -48,13 +48,25 @@ function drawShape(positionData) {
         ),
       },
     });
+  } else if (drawingMode === "rectangle") {
+    shape = viewer.entities.add({
+      rectangle: {
+        coordinates: positionData,
+        material: new Cesium.ColorMaterialProperty(
+          Cesium.Color.WHITE.withAlpha(0.7),
+        ),
+      },
+    });
   }
   return shape;
 }
+
 let activeShapePoints = [];
 let activeShape;
 let floatingPoint;
+
 const handler = new Cesium.ScreenSpaceEventHandler(viewer.canvas);
+
 handler.setInputAction(function (event) {
   // We use `viewer.scene.globe.pick here instead of `viewer.camera.pickEllipsoid` so that
   // we get the correct point when mousing over terrain.
@@ -99,6 +111,7 @@ function terminateShape() {
   activeShape = undefined;
   activeShapePoints = [];
 }
+
 handler.setInputAction(function (event) {
   terminateShape();
 }, Cesium.ScreenSpaceEventType.RIGHT_CLICK);
@@ -125,7 +138,7 @@ const options = [
 ];
 
 viewer.camera.lookAt(
-  Cesium.Cartesian3.fromDegrees(-122.2058, 46.1955, 1000.0),
-  new Cesium.Cartesian3(5000.0, 5000.0, 5000.0),
+  Cesium.Cartesian3.fromDegrees(-45.873938, -23.212619, 200.0),
+  new Cesium.Cartesian3(800.0, 800.0, 800.0),
 );
 viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
