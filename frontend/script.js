@@ -34,6 +34,7 @@ let groundPoint;
 let groundPosition;
 let lineFromGroundToHeaven
 let floatingPoint;
+let floatingLabel;
 
 handler.setInputAction(function (movement) {
   if (!Cesium.defined(groundPoint)) {
@@ -47,6 +48,16 @@ handler.setInputAction(function (movement) {
     groundPoint = createPoint(earthPosition);
     floatingPoint = createPoint(earthPosition);
     groundPosition = earthPosition;
+    floatingLabel = annotations.add({
+      position: groundPosition,
+      text: '0 m',
+      showBackground: true,
+      font: "14px monospace",
+      horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
+      verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+      disableDepthTestDistance: Number.POSITIVE_INFINITY,
+    });
+
 
     let earthCartographic = Cesium.Cartographic.fromCartesian(earthPosition);
     earthCartographic.height = 10000.0
@@ -64,6 +75,10 @@ handler.setInputAction(function (movement) {
 	material: Cesium.Color.YELLOW.withAlpha(0.7),
     }});
   } else {
+    // viewer.entities.remove(floatingPoint);
+    // viewer.entities.remove(groundPoint);
+    // annotations.remove(floatingLabel);
+
     const feature = scene.pick(movement.position);
     if (!Cesium.defined(feature)) return; 
 
@@ -91,7 +106,7 @@ handler.setInputAction(function (movement) {
 
     viewer.entities.remove(lineFromGroundToHeaven);
     viewer.entities.remove(groundPoint);
-    viewer.entities.remove(floatingPoint);
+    // annotations.remove(floatingLabel);
 
   }
 }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
@@ -103,16 +118,18 @@ handler.setInputAction(function (movement) {
 
     const cartesian = scene.pickPosition(movement.endPosition);
     if (!Cesium.defined(cartesian)) return; 
-    console.log(cartesian);
 
     const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
-    const height = `${cartographic.height.toFixed(2)} m`;
-
     let groundCartographic = Cesium.Cartographic.fromCartesian(groundPosition);
+    const height = (2 * (cartographic.height - groundCartographic.height))
+    const heightText = `${height.toFixed(2)} m`;
+
 
     // viewer.entities.remove(floatingPoint);
     // floatingPoint = createPoint(
     floatingPoint.position.setValue(cartesian);
+    // floatingLabel.text = heightText;
+    // floatingLabel.position = cartesian;
   }
 }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
 
