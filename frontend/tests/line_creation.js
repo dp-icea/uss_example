@@ -35,7 +35,7 @@ function drawShape(positionData) {
     shape = viewer.entities.add({
       polyline: {
         positions: positionData,
-        clampToGround: false,:VExp
+        clampToGround: false,
         width: 3,
       },
     });

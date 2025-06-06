@@ -8,9 +8,21 @@ const viewer = new Cesium.Viewer('cesiumContainer', {
 	terrain: Cesium.Terrain.fromWorldTerrain(),
 	selectionIndicator: false,
 	infoBox: false,
-});    
+});
+const scene = viewer.scene;
 
 viewer._cesiumWidget._creditContainer.style.display = "none";
+
+function createPoint(worldPosition) {
+  const point = viewer.entities.add({
+    position: worldPosition,
+    point: {
+      color: Cesium.Color.RED,
+      pixelSize: 10,
+    },
+  });
+  return point;
+}
 
 viewer.cesiumWidget.screenSpaceEventHandler.removeInputAction(
   Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK,
@@ -18,19 +30,55 @@ viewer.cesiumWidget.screenSpaceEventHandler.removeInputAction(
 
 const handler = new Cesium.ScreenSpaceEventHandler(viewer.canvas);
 
-handler.setInputAction(function (event) {
-  // We use `viewer.scene.globe.pick here instead of `viewer.camera.pickEllipsoid` so that
-  // we get the correct point when mousing over terrain.
-  const ray = viewer.camera.getPickRay(event.position);
-  const earthPosition = viewer.scene.globe.pick(ray, viewer.scene);
-  // `earthPosition` will be undefined if our mouse is not over the globe.
-  if (Cesium.defined(earthPosition)) {
+let groundPoint;
+let groundPosition;
+let lineFromGroundToHeaven
+let floatingPoint;
 
-    // Create a cilinder
-    const cylinder = viewer.entities.add({
+handler.setInputAction(function (movement) {
+  if (!Cesium.defined(groundPoint)) {
+    const ray = viewer.camera.getPickRay(movement.position);
+    const earthPosition = viewer.scene.globe.pick(ray, viewer.scene);
+    
+    if (!Cesium.defined(earthPosition)) {
+      return;
+    }
+
+    groundPoint = createPoint(earthPosition);
+    floatingPoint = createPoint(earthPosition);
+    groundPosition = earthPosition;
+
+    let earthCartographic = Cesium.Cartographic.fromCartesian(earthPosition);
+    earthCartographic.height = 10000.0
+    const infinityPosition = Cesium.Cartographic.toCartesian(earthCartographic);
+
+    lineFromGroundToHeaven = viewer.entities.add({
+      name: 'lineFromGroundToHeaven',
       position: earthPosition,
+      polyline: {
+	positions: [
+	  earthPosition,
+	  infinityPosition,
+	],
+	width: 5,
+	material: Cesium.Color.YELLOW.withAlpha(0.7),
+    }});
+  } else {
+    const feature = scene.pick(movement.position);
+    if (!Cesium.defined(feature)) return; 
+
+    const cartesian = scene.pickPosition(movement.position);
+    if (!Cesium.defined(cartesian)) return; 
+
+    const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
+    const height = `${cartographic.height.toFixed(2)} m`;
+
+    let groundCartographic = Cesium.Cartographic.fromCartesian(groundPosition);
+
+    const cylinder = viewer.entities.add({
+      position: groundPosition,
 	cylinder: {
-		    length: 400.0,
+		    length: 2 * (cartographic.height - groundCartographic.height),
 		    topRadius: 50.0,
 		    bottomRadius: 50.0,
 		    material: Cesium.Color.RED.withAlpha(0.5),
@@ -39,22 +87,103 @@ handler.setInputAction(function (event) {
 		},
 	  });
 
+    groundPoint = undefined;
+
+    viewer.entities.remove(lineFromGroundToHeaven);
+    viewer.entities.remove(groundPoint);
+    viewer.entities.remove(floatingPoint);
 
   }
 }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
-// const greenCylinder = viewer.entities.add({
-//   name: "Green cylinder with black outline",
-//   position: Cesium.Cartesian3.fromDegrees(-45.873938, -23.212619, 200.0),
-//   cylinder: {
-//     length: 400.0,
-//     topRadius: 50.0,
-//     bottomRadius: 50.0,
-//     material: Cesium.Color.GREEN.withAlpha(0.5),
-//     outline: true,
-//     outlineColor: Cesium.Color.BLACK,
-//   },
-// });
+handler.setInputAction(function (movement) {
+  if (Cesium.defined(floatingPoint)) {
+    const feature = scene.pick(movement.endPosition);
+    if (!Cesium.defined(feature)) return; 
+
+    const cartesian = scene.pickPosition(movement.endPosition);
+    if (!Cesium.defined(cartesian)) return; 
+    console.log(cartesian);
+
+    const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
+    const height = `${cartographic.height.toFixed(2)} m`;
+
+    let groundCartographic = Cesium.Cartographic.fromCartesian(groundPosition);
+
+    // viewer.entities.remove(floatingPoint);
+    // floatingPoint = createPoint(
+    floatingPoint.position.setValue(cartesian);
+  }
+}, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+
+// handler.setInputAction(function (event) {
+//   // We use `viewer.scene.globe.pick here instead of `viewer.camera.pickEllipsoid` so that
+//   // we get the correct point when mousing over terrain.
+//   const ray = viewer.camera.getPickRay(event.position);
+//   const earthPosition = viewer.scene.globe.pick(ray, viewer.scene);
+//   // `earthPosition` will be undefined if our mouse is not over the globe.
+//   if (Cesium.defined(earthPosition)) {
+//
+//     // Create a cilinder
+//     const cylinder = viewer.entities.add({
+//       position: earthPosition,
+// 	cylinder: {
+// 		    length: 400.0,
+// 		    topRadius: 50.0,
+// 		    bottomRadius: 50.0,
+// 		    material: Cesium.Color.RED.withAlpha(0.5),
+// 		    outline: true,
+// 		    outlineColor: Cesium.Color.BLACK,
+// 		},
+// 	  });
+//
+//
+//   }
+// }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+if (!scene.pickPositionSupported) {
+  window.alert('This browser does not support picking positions.');
+}
+
+const greenCylinder = viewer.entities.add({
+	position: Cesium.Cartesian3.fromDegrees(-45.873938, -23.212619, 700.0),
+	cylinder: {
+		length: 200.0,
+		topRadius: 50.0,
+		bottomRadius: 50.0,
+		material: Cesium.Color.GREEN.withAlpha(0.5),
+		outline: true,
+		outlineColor: Cesium.Color.BLACK,
+	},
+});
+
+const annotations = scene.primitives.add(new Cesium.LabelCollection());
+
+handler.setInputAction(function (movement) {
+  if (!scene.pickPositionSupported) return;
+
+  const feature = scene.pick(movement.position);
+  if (!Cesium.defined(feature))	return; 
+
+  const cartesian = scene.pickPosition(movement.position);
+  if (!Cesium.defined(cartesian)) return; 
+
+
+  const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
+  const height = `${cartographic.height.toFixed(2)} m`;
+
+  annotations.add({
+    position: cartesian,
+    text: height,
+    showBackground: true,
+    font: "14px monospace",
+    horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
+    verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+    disableDepthTestDistance: Number.POSITIVE_INFINITY,
+  });
+}, Cesium.ScreenSpaceEventType.RIGHT_CLICK);
+
+
 
 viewer.camera.lookAt(
   Cesium.Cartesian3.fromDegrees(-45.873938, -23.212619, 200.0),
