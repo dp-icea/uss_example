@@ -8,10 +8,20 @@ const viewer = new Cesium.Viewer('cesiumContainer', {
 	terrain: Cesium.Terrain.fromWorldTerrain(),
 	selectionIndicator: false,
 	infoBox: false,
+	animation: false,
+	timeline: false,
+	homeButton: false,
+fullscreenButton: false,
+navigationHelpButton: false,
+vrButton: false,
 });
+viewer._cesiumWidget._creditContainer.style.display = "none";
+
+const osmBuildingsTileset = await Cesium.createOsmBuildingsAsync();
+viewer.scene.primitives.add(osmBuildingsTileset);
+
 const scene = viewer.scene;
 
-viewer._cesiumWidget._creditContainer.style.display = "none";
 
 function createPoint(worldPosition) {
   const point = viewer.entities.add({
@@ -48,15 +58,15 @@ handler.setInputAction(function (movement) {
     groundPoint = createPoint(earthPosition);
     floatingPoint = createPoint(earthPosition);
     groundPosition = earthPosition;
-    floatingLabel = annotations.add({
-      position: groundPosition,
-      text: '0 m',
-      showBackground: true,
-      font: "14px monospace",
-      horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
-      verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-      disableDepthTestDistance: Number.POSITIVE_INFINITY,
-    });
+    //floatingLabel = annotations.add({
+    //  position: groundPosition,
+    //  text: '0 m',
+    //  showBackground: true,
+    //  font: "14px monospace",
+    //  horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
+    //  verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+    //  disableDepthTestDistance: Number.POSITIVE_INFINITY,
+    //});
 
 
     let earthCartographic = Cesium.Cartographic.fromCartesian(earthPosition);
@@ -106,7 +116,7 @@ handler.setInputAction(function (movement) {
 
     viewer.entities.remove(lineFromGroundToHeaven);
     viewer.entities.remove(groundPoint);
-    // annotations.remove(floatingLabel);
+     annotations.remove(floatingLabel);
 
   }
 }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
@@ -123,6 +133,18 @@ handler.setInputAction(function (movement) {
     let groundCartographic = Cesium.Cartographic.fromCartesian(groundPosition);
     const height = (2 * (cartographic.height - groundCartographic.height))
     const heightText = `${height.toFixed(2)} m`;
+
+    annotations.remove(floatingLabel);
+
+    floatingLabel = annotations.add({
+      position: cartesian,
+      text: heightText,
+      showBackground: true,
+      font: "14px monospace",
+      horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
+      verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+      disableDepthTestDistance: Number.POSITIVE_INFINITY,
+    });
 
 
     // viewer.entities.remove(floatingPoint);
