@@ -18,6 +18,12 @@ viewer._cesiumWidget._creditContainer.style.display = "none";
 const osmBuildingsTileset = await Cesium.createOsmBuildingsAsync();
 viewer.scene.primitives.add(osmBuildingsTileset);
 
+viewer.scene.screenSpaceCameraController.zoomEventTypes = [
+  Cesium.CameraEventType.RIGHT_DRAG,
+  Cesium.CameraEventType.WHEEL,
+  Cesium.CameraEventType.PINCH,
+];
+
 const scene = viewer.scene;
 
 function createPoint(worldPosition) {
@@ -40,11 +46,13 @@ const handler = new Cesium.ScreenSpaceEventHandler(viewer.canvas);
 let groundPoint;
 let groundPosition;
 let height;
+let radius = 50.0;
 let lineFromGroundToHeaven;
 let floatingPoint;
 let floatingLabel;
 let cylinder;
 let maxCylinder;
+let wheelAcceleration = 1.0;
 
 handler.setInputAction(function (movement) {
   if (!Cesium.defined(groundPoint)) {
@@ -72,15 +80,25 @@ handler.setInputAction(function (movement) {
     earthCartographic.height += 120.0;
     const infinityPosition = Cesium.Cartographic.toCartesian(earthCartographic);
 
-    lineFromGroundToHeaven = viewer.entities.add({
-      name: "lineFromGroundToHeaven",
-      position: earthPosition,
-      polyline: {
-        positions: [earthPosition, infinityPosition],
-        width: 200,
-        // Almost invisible
-        material: Cesium.Color.YELLOW.withAlpha(0.7),
-        //material: Cesium.Color.YELLOW.withAlpha(0.01),
+    //lineFromGroundToHeaven = viewer.entities.add({
+    //  name: "lineFromGroundToHeaven",
+    //  position: earthPosition,
+    //  polyline: {
+    //    positions: [earthPosition, infinityPosition],
+    //    width: 200,
+    //    // Almost invisible
+    //    material: Cesium.Color.YELLOW.withAlpha(0.7),
+    //    //material: Cesium.Color.YELLOW.withAlpha(0.01),
+    //  },
+    //});
+
+    maxCylinder = viewer.entities.add({
+      position: groundPosition,
+      cylinder: {
+        length: 120.0,
+        topRadius: radius + 1.0,
+        bottomRadius: radius + 1.0,
+        material: Cesium.Color.YELLOW.withAlpha(0.01),
       },
     });
 
@@ -89,25 +107,37 @@ handler.setInputAction(function (movement) {
       position: groundPosition,
       cylinder: {
         length: height,
-        topRadius: 50.0,
-        bottomRadius: 50.0,
+        topRadius: radius,
+        bottomRadius: radius,
         material: Cesium.Color.RED.withAlpha(0.5),
         outline: true,
         outlineColor: Cesium.Color.BLACK,
       },
     });
+
+    viewer.scene.screenSpaceCameraController.zoomEventTypes = [
+      Cesium.CameraEventType.RIGHT_DRAG,
+      Cesium.CameraEventType.PINCH,
+    ];
   } else {
     if (height === undefined) return;
 
-
-    viewer.entities.remove(lineFromGroundToHeaven);
+    viewer.entities.remove(maxCylinder);
     viewer.entities.remove(groundPoint);
     viewer.entities.remove(floatingPoint);
     annotations.remove(floatingLabel);
 
+    radius = 50.0;
+
     groundPoint = undefined;
     floatingPoint = undefined;
     lineFromGroundToHeaven = undefined;
+
+    viewer.scene.screenSpaceCameraController.zoomEventTypes = [
+      Cesium.CameraEventType.RIGHT_DRAG,
+      Cesium.CameraEventType.WHEEL,
+      Cesium.CameraEventType.PINCH,
+    ];
   }
 }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
@@ -115,8 +145,7 @@ handler.setInputAction(function (movement) {
   if (Cesium.defined(floatingPoint)) {
     const feature = scene.pick(movement.endPosition);
     if (!Cesium.defined(feature)) return;
-    if (feature.id === undefined || feature.id !== lineFromGroundToHeaven)
-      return;
+    if (feature.id === undefined || feature.id !== maxCylinder) return;
 
     const cartesian = scene.pickPosition(movement.endPosition);
     if (!Cesium.defined(cartesian)) return;
@@ -143,14 +172,13 @@ handler.setInputAction(function (movement) {
       position: groundPosition,
       cylinder: {
         length: height,
-        topRadius: 50.0,
-        bottomRadius: 50.0,
+        topRadius: radius,
+        bottomRadius: radius,
         material: Cesium.Color.RED.withAlpha(0.5),
         outline: true,
         outlineColor: Cesium.Color.BLACK,
       },
     });
-
 
     // viewer.entities.remove(floatingPoint);
     // floatingPoint = createPoint(
@@ -159,6 +187,36 @@ handler.setInputAction(function (movement) {
     // floatingLabel.position = cartesian;
   }
 }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+
+handler.setInputAction(function (movement) {
+  if (!Cesium.defined(groundPoint)) return;
+
+  radius += Math.sign(movement) * wheelAcceleration;
+
+  viewer.entities.remove(maxCylinder);
+  maxCylinder = viewer.entities.add({
+    position: groundPosition,
+    cylinder: {
+      length: 120.0,
+      topRadius: radius + 1.0,
+      bottomRadius: radius + 1.0,
+      material: Cesium.Color.YELLOW.withAlpha(0.01),
+    },
+  });
+
+  viewer.entities.remove(cylinder);
+  cylinder = viewer.entities.add({
+    position: groundPosition,
+    cylinder: {
+      length: height,
+      topRadius: radius,
+      bottomRadius: radius,
+      material: Cesium.Color.RED.withAlpha(0.5),
+      outline: true,
+      outlineColor: Cesium.Color.BLACK,
+    },
+  });
+}, Cesium.ScreenSpaceEventType.WHEEL);
 
 // handler.setInputAction(function (event) {
 //   // We use `viewer.scene.globe.pick here instead of `viewer.camera.pickEllipsoid` so that
