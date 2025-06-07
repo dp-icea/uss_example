@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Request, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from routes.operational_intent import router as OperationalIntentsRouter
 from routes.constraint import router as ConstraintRouter
@@ -25,6 +26,11 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+origins = [
+    "http://localhost",
+    "http://localhost:9000",
+]
+
 @app.middleware("http")
 async def catch_exceptions_middleware(request: Request, call_next):
     try:
@@ -36,6 +42,14 @@ async def catch_exceptions_middleware(request: Request, call_next):
                 "message": "Internal Server Error",
                 "data": str(e)},
         )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Required routers
 app.include_router(OperationalIntentsRouter, tags=["Operational Intents"], prefix="/uss/v1/operational_intents", dependencies=[Depends(AuthCheck())])

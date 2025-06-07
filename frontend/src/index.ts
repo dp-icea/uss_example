@@ -2,8 +2,6 @@ import * as Cesium from "cesium";
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import "./css/main.css";
 
-//Cesium.Ion.defaultAccessToken =
-//  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIyMTgxNzg3NC01ZmE2LTRhNTUtOWRlOS01ZGMyZWU4NTViMTEiLCJpZCI6MzA4MjgyLCJpYXQiOjE3NDg4MTI4ODJ9.2ynR2Qhw8_bCBZhXiSQR7m2vYhKBSc6HfvnyG5kl9yg";
 if (process.env.ION_KEY) {
   Cesium.Ion.defaultAccessToken = process.env.ION_KEY;
 }
@@ -52,7 +50,7 @@ viewer.cesiumWidget.screenSpaceEventHandler.removeInputAction(
 const handler = new Cesium.ScreenSpaceEventHandler(viewer.canvas);
 
 let groundPoint: any;
-let groundPosition: any;
+let groundPosition: Cesium.Cartesian3 | undefined = undefined;
 let height: any;
 let radius = 50.0;
 let lineFromGroundToHeaven;
@@ -61,6 +59,8 @@ let floatingLabel: any;
 let cylinder: any;
 let maxCylinder: any;
 let wheelAcceleration = 1.0;
+
+let volumeAdded: any[] = [];
 
 handler.setInputAction(function(movement: any) {
   if (!Cesium.defined(groundPoint)) {
@@ -74,31 +74,9 @@ handler.setInputAction(function(movement: any) {
     groundPoint = createPoint(earthPosition);
     floatingPoint = createPoint(earthPosition);
     groundPosition = earthPosition;
-    //floatingLabel = annotations.add({
-    //  position: groundPosition,
-    //  text: '0 m',
-    //  showBackground: true,
-    //  font: "14px monospace",
-    //  horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
-    //  verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-    //  disableDepthTestDistance: Number.POSITIVE_INFINITY,
-    //});
 
     let earthCartographic = Cesium.Cartographic.fromCartesian(earthPosition);
     earthCartographic.height += 120.0;
-    const infinityPosition = Cesium.Cartographic.toCartesian(earthCartographic);
-
-    //lineFromGroundToHeaven = viewer.entities.add({
-    //  name: "lineFromGroundToHeaven",
-    //  position: earthPosition,
-    //  polyline: {
-    //    positions: [earthPosition, infinityPosition],
-    //    width: 200,
-    //    // Almost invisible
-    //    material: Cesium.Color.YELLOW.withAlpha(0.7),
-    //    //material: Cesium.Color.YELLOW.withAlpha(0.01),
-    //  },
-    //});
 
     maxCylinder = viewer.entities.add({
       position: groundPosition,
@@ -129,6 +107,12 @@ handler.setInputAction(function(movement: any) {
     ];
   } else {
     if (height === undefined) return;
+
+    volumeAdded.push({
+      position: groundPosition,
+      radius: radius,
+      height: height,
+    });
 
     viewer.entities.remove(maxCylinder);
     viewer.entities.remove(groundPoint);
@@ -226,46 +210,9 @@ handler.setInputAction(function(movement: any) {
   });
 }, Cesium.ScreenSpaceEventType.WHEEL);
 
-// handler.setInputAction(function (event) {
-//   // We use `viewer.scene.globe.pick here instead of `viewer.camera.pickEllipsoid` so that
-//   // we get the correct point when mousing over terrain.
-//   const ray = viewer.camera.getPickRay(event.position);
-//   const earthPosition = viewer.scene.globe.pick(ray, viewer.scene);
-//   // `earthPosition` will be undefined if our mouse is not over the globe.
-//   if (Cesium.defined(earthPosition)) {
-//
-//     // Create a cilinder
-//     const cylinder = viewer.entities.add({
-//       position: earthPosition,
-// 	cylinder: {
-// 		    length: 400.0,
-// 		    topRadius: 50.0,
-// 		    bottomRadius: 50.0,
-// 		    material: Cesium.Color.RED.withAlpha(0.5),
-// 		    outline: true,
-// 		    outlineColor: Cesium.Color.BLACK,
-// 		},
-// 	  });
-//
-//
-//   }
-// }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
-
 if (!scene.pickPositionSupported) {
   window.alert("This browser does not support picking positions.");
 }
-
-const greenCylinder = viewer.entities.add({
-  position: Cesium.Cartesian3.fromDegrees(-45.873938, -23.212619, 700.0),
-  cylinder: {
-    length: 200.0,
-    topRadius: 50.0,
-    bottomRadius: 50.0,
-    material: Cesium.Color.GREEN.withAlpha(0.5),
-    outline: true,
-    outlineColor: Cesium.Color.BLACK,
-  },
-});
 
 const annotations = scene.primitives.add(new Cesium.LabelCollection());
 
@@ -297,3 +244,150 @@ viewer.camera.lookAt(
   new Cesium.Cartesian3(800.0, 800.0, 800.0),
 );
 viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
+
+const volumeRequestForm = document.getElementById(
+  "volumeRequestForm",
+) as HTMLFormElement;
+
+if (volumeRequestForm) {
+  volumeRequestForm.addEventListener("submit", function(event: Event) {
+    event.preventDefault(); // Prevent default form submission
+
+    const startTimeInput = document.getElementById(
+      "startTime",
+    ) as HTMLInputElement;
+    const endTimeInput = document.getElementById("endTime") as HTMLInputElement;
+
+    if (startTimeInput && endTimeInput) {
+      const startTime = startTimeInput.value;
+      const endTime = endTimeInput.value;
+
+      // Validate that end time is after start time
+      if (new Date(startTime) >= new Date(endTime)) {
+        alert("End time must be after start time");
+        return;
+      }
+
+      // Call function to handle the request
+      handleVolumeRequest(startTime, endTime);
+    }
+  });
+}
+
+// Function to handle the volume request
+function handleVolumeRequest(startTime: string, endTime: string) {
+  console.log("Volume request:", { startTime, endTime });
+
+  const submitButton = document.querySelector(
+    '#volumeRequestForm button[type="submit"]',
+  ) as HTMLButtonElement;
+
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = "Requesting...";
+
+
+    /*
+     Request format
+     {
+      "volume": {
+          "outline_circle": {
+          "center": {
+              "lng": -118.456,
+              "lat": 34.123
+          },
+          "radius": {
+              "value": 300.183,
+              "units": "M"
+          }
+          },
+          "altitude_lower": {
+          "value": 100000,
+          "reference": "W84",
+          "units": "M"
+          },
+          "altitude_upper": {
+          "value": 100000,
+          "reference": "W84",
+          "units": "M"
+          }
+      },
+      "time_start": {
+          "value": "2025-06-29T07:00:17Z",
+          "format": "RFC3339"
+      },
+      "time_end": {
+          "value": "2025-06-29T07:01:16Z",
+          "format": "RFC3339"
+      }
+    }
+    */
+    if (volumeAdded.length === 0) {
+      return;
+    }
+
+    const object: any = volumeAdded[volumeAdded.length - 1];
+    console.log(object);
+
+    let center = Cesium.Cartographic.fromCartesian(object.position);
+
+    fetch("http://localhost:8000/uss/v1/flight_plan/", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        volume: {
+          outline_circle: {
+            center: {
+              lng: center.longitude,
+              lat: center.latitude,
+            },
+            radius: {
+              value: object.radius,
+              units: "M",
+            },
+          },
+          altitude_lower: {
+            value: center.height, // Adjust as needed
+            reference: "W84",
+            units: "M",
+          },
+          altitude_upper: {
+            value: center.height + object.height, // Adjust as needed
+            reference: "W84",
+            units: "M",
+          },
+        },
+        time_start: {
+          value: startTime,
+          format: "RFC3339",
+        },
+        time_end: {
+          value: endTime,
+          format: "RFC3339",
+        },
+      }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        console.log("Server response:", data);
+        // Handle success response
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        // Handle error
+      });
+
+    // Your request logic here
+
+    // Re-enable button after request completes
+    setTimeout(() => {
+      submitButton.disabled = false;
+      submitButton.textContent = "Request";
+    }, 2000);
+  }
+
+  // For now, just show an alert
+  alert(`Request submitted for period: ${startTime} to ${endTime}`);
+}
