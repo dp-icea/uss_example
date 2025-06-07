@@ -1,19 +1,17 @@
-// Your access token can be found at: https://ion.cesium.com/tokens.
-// Replace `your_access_token` with your Cesium ion access token.
-
-Cesium.Ion.defaultAccessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIyMTgxNzg3NC01ZmE2LTRhNTUtOWRlOS01ZGMyZWU4NTViMTEiLCJpZCI6MzA4MjgyLCJpYXQiOjE3NDg4MTI4ODJ9.2ynR2Qhw8_bCBZhXiSQR7m2vYhKBSc6HfvnyG5kl9yg';
+Cesium.Ion.defaultAccessToken =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIyMTgxNzg3NC01ZmE2LTRhNTUtOWRlOS01ZGMyZWU4NTViMTEiLCJpZCI6MzA4MjgyLCJpYXQiOjE3NDg4MTI4ODJ9.2ynR2Qhw8_bCBZhXiSQR7m2vYhKBSc6HfvnyG5kl9yg";
 
 // Initialize the Cesium Viewer in the HTML element with the `cesiumContainer` ID.
-const viewer = new Cesium.Viewer('cesiumContainer', {
-	terrain: Cesium.Terrain.fromWorldTerrain(),
-	selectionIndicator: false,
-	infoBox: false,
-	animation: false,
-	timeline: false,
-	homeButton: false,
-fullscreenButton: false,
-navigationHelpButton: false,
-vrButton: false,
+let viewer = new Cesium.Viewer("cesiumContainer", {
+  terrain: Cesium.Terrain.fromWorldTerrain(),
+  selectionIndicator: false,
+  infoBox: false,
+  animation: false,
+  timeline: false,
+  homeButton: false,
+  fullscreenButton: false,
+  navigationHelpButton: false,
+  vrButton: false,
 });
 viewer._cesiumWidget._creditContainer.style.display = "none";
 
@@ -21,7 +19,6 @@ const osmBuildingsTileset = await Cesium.createOsmBuildingsAsync();
 viewer.scene.primitives.add(osmBuildingsTileset);
 
 const scene = viewer.scene;
-
 
 function createPoint(worldPosition) {
   const point = viewer.entities.add({
@@ -42,15 +39,18 @@ const handler = new Cesium.ScreenSpaceEventHandler(viewer.canvas);
 
 let groundPoint;
 let groundPosition;
-let lineFromGroundToHeaven
+let height;
+let lineFromGroundToHeaven;
 let floatingPoint;
 let floatingLabel;
+let cylinder;
+let maxCylinder;
 
 handler.setInputAction(function (movement) {
   if (!Cesium.defined(groundPoint)) {
     const ray = viewer.camera.getPickRay(movement.position);
     const earthPosition = viewer.scene.globe.pick(ray, viewer.scene);
-    
+
     if (!Cesium.defined(earthPosition)) {
       return;
     }
@@ -68,70 +68,62 @@ handler.setInputAction(function (movement) {
     //  disableDepthTestDistance: Number.POSITIVE_INFINITY,
     //});
 
-
     let earthCartographic = Cesium.Cartographic.fromCartesian(earthPosition);
-    earthCartographic.height = 10000.0
+    earthCartographic.height += 120.0;
     const infinityPosition = Cesium.Cartographic.toCartesian(earthCartographic);
 
     lineFromGroundToHeaven = viewer.entities.add({
-      name: 'lineFromGroundToHeaven',
+      name: "lineFromGroundToHeaven",
       position: earthPosition,
       polyline: {
-	positions: [
-	  earthPosition,
-	  infinityPosition,
-	],
-	width: 5,
-	material: Cesium.Color.YELLOW.withAlpha(0.7),
-    }});
-  } else {
-    // viewer.entities.remove(floatingPoint);
-    // viewer.entities.remove(groundPoint);
-    // annotations.remove(floatingLabel);
+        positions: [earthPosition, infinityPosition],
+        width: 200,
+        // Almost invisible
+        material: Cesium.Color.YELLOW.withAlpha(0.7),
+        //material: Cesium.Color.YELLOW.withAlpha(0.01),
+      },
+    });
 
-    const feature = scene.pick(movement.position);
-    if (!Cesium.defined(feature)) return; 
-
-    const cartesian = scene.pickPosition(movement.position);
-    if (!Cesium.defined(cartesian)) return; 
-
-    const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
-    const height = `${cartographic.height.toFixed(2)} m`;
-
-    let groundCartographic = Cesium.Cartographic.fromCartesian(groundPosition);
-
-    const cylinder = viewer.entities.add({
+    height = 0;
+    cylinder = viewer.entities.add({
       position: groundPosition,
-	cylinder: {
-		    length: 2 * (cartographic.height - groundCartographic.height),
-		    topRadius: 50.0,
-		    bottomRadius: 50.0,
-		    material: Cesium.Color.RED.withAlpha(0.5),
-		    outline: true,
-		    outlineColor: Cesium.Color.BLACK,
-		},
-	  });
+      cylinder: {
+        length: height,
+        topRadius: 50.0,
+        bottomRadius: 50.0,
+        material: Cesium.Color.RED.withAlpha(0.5),
+        outline: true,
+        outlineColor: Cesium.Color.BLACK,
+      },
+    });
+  } else {
+    if (height === undefined) return;
 
-    groundPoint = undefined;
 
     viewer.entities.remove(lineFromGroundToHeaven);
     viewer.entities.remove(groundPoint);
-     annotations.remove(floatingLabel);
+    viewer.entities.remove(floatingPoint);
+    annotations.remove(floatingLabel);
 
+    groundPoint = undefined;
+    floatingPoint = undefined;
+    lineFromGroundToHeaven = undefined;
   }
 }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
 handler.setInputAction(function (movement) {
   if (Cesium.defined(floatingPoint)) {
     const feature = scene.pick(movement.endPosition);
-    if (!Cesium.defined(feature)) return; 
+    if (!Cesium.defined(feature)) return;
+    if (feature.id === undefined || feature.id !== lineFromGroundToHeaven)
+      return;
 
     const cartesian = scene.pickPosition(movement.endPosition);
-    if (!Cesium.defined(cartesian)) return; 
+    if (!Cesium.defined(cartesian)) return;
 
     const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
     let groundCartographic = Cesium.Cartographic.fromCartesian(groundPosition);
-    const height = (2 * (cartographic.height - groundCartographic.height))
+    height = 2 * (cartographic.height - groundCartographic.height);
     const heightText = `${height.toFixed(2)} m`;
 
     annotations.remove(floatingLabel);
@@ -144,6 +136,19 @@ handler.setInputAction(function (movement) {
       horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
       verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
       disableDepthTestDistance: Number.POSITIVE_INFINITY,
+    });
+
+    viewer.entities.remove(cylinder);
+    cylinder = viewer.entities.add({
+      position: groundPosition,
+      cylinder: {
+        length: height,
+        topRadius: 50.0,
+        bottomRadius: 50.0,
+        material: Cesium.Color.RED.withAlpha(0.5),
+        outline: true,
+        outlineColor: Cesium.Color.BLACK,
+      },
     });
 
 
@@ -181,19 +186,19 @@ handler.setInputAction(function (movement) {
 // }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
 if (!scene.pickPositionSupported) {
-  window.alert('This browser does not support picking positions.');
+  window.alert("This browser does not support picking positions.");
 }
 
 const greenCylinder = viewer.entities.add({
-	position: Cesium.Cartesian3.fromDegrees(-45.873938, -23.212619, 700.0),
-	cylinder: {
-		length: 200.0,
-		topRadius: 50.0,
-		bottomRadius: 50.0,
-		material: Cesium.Color.GREEN.withAlpha(0.5),
-		outline: true,
-		outlineColor: Cesium.Color.BLACK,
-	},
+  position: Cesium.Cartesian3.fromDegrees(-45.873938, -23.212619, 700.0),
+  cylinder: {
+    length: 200.0,
+    topRadius: 50.0,
+    bottomRadius: 50.0,
+    material: Cesium.Color.GREEN.withAlpha(0.5),
+    outline: true,
+    outlineColor: Cesium.Color.BLACK,
+  },
 });
 
 const annotations = scene.primitives.add(new Cesium.LabelCollection());
@@ -202,11 +207,10 @@ handler.setInputAction(function (movement) {
   if (!scene.pickPositionSupported) return;
 
   const feature = scene.pick(movement.position);
-  if (!Cesium.defined(feature))	return; 
+  if (!Cesium.defined(feature)) return;
 
   const cartesian = scene.pickPosition(movement.position);
-  if (!Cesium.defined(cartesian)) return; 
-
+  if (!Cesium.defined(cartesian)) return;
 
   const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
   const height = `${cartographic.height.toFixed(2)} m`;
@@ -221,8 +225,6 @@ handler.setInputAction(function (movement) {
     disableDepthTestDistance: Number.POSITIVE_INFINITY,
   });
 }, Cesium.ScreenSpaceEventType.RIGHT_CLICK);
-
-
 
 viewer.camera.lookAt(
   Cesium.Cartesian3.fromDegrees(-45.873938, -23.212619, 200.0),
