@@ -1,75 +1,112 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ICEA DroneScope</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    #cesiumContainer {
-      position: absolute;
-      top: 60px;
-      bottom: 60px;
-      left: 300px;
-      right: 0;
-    }
-    #sidePanel {
-      position: absolute;
-      top: 60px;
-      bottom: 60px;
-      left: 0;
-      width: 300px;
-      background-color: #f8f9fa;
-      padding: 15px;
-      overflow-y: auto;
-      border-right: 1px solid #ddd;
-    }
-    header, footer {
-      position: fixed;
-      left: 0;
-      right: 0;
-      height: 60px;
-      background-color: #343a40;
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-    }
-    header {
-      top: 0;
-    }
-    footer {
-      bottom: 0;
-    }
-  </style>
-</head>
-<body>
-  <header>
-    <h1 class="h4 mb-0">ICEA DroneScope</h1>
-  </header>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ICEA DroneScope</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      #cesiumContainer {
+        position: absolute;
+        top: 60px;
+        bottom: 0px;
+        left: 300px;
+        right: 0;
+      }
+      #sidePanel {
+        position: absolute;
+        top: 60px;
+        bottom: 0px;
+        left: 0;
+        width: 300px;
+        background-color: #f8f9fa;
+        padding: 15px;
+        overflow-y: auto;
+        border-right: 1px solid #ddd;
+      }
+      header,
+      footer {
+        position: fixed;
+        left: 0;
+        right: 0;
+        height: 60px;
+        background-color: #343a40;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+      }
+      header {
+        top: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1 class="h4 mb-0">ICEA DroneScope</h1>
+    </header>
 
-  <div id="sidePanel">
-    <h5>Volume Request</h5>
-    <form id="volumeRequestForm">
+    <div id="sidePanel">
+      <h5>Drawing Tool</h5>
       <div class="mb-3">
-        <label for="startTime" class="form-label">Start Time</label>
-        <input type="datetime-local" id="startTime" class="form-control" required>
+        <div class="btn-group w-100" role="group" aria-label="Drawing tools">
+          <input
+            type="radio"
+            class="btn-check"
+            name="drawingTool"
+            id="cylinderTool"
+            value="cylinder"
+            checked
+          />
+          <label class="btn btn-outline-primary" for="cylinderTool"
+            >Cylinder</label
+          >
+
+          <input
+            type="radio"
+            class="btn-check"
+            name="drawingTool"
+            id="polygonTool"
+            value="polygon"
+          />
+          <label class="btn btn-outline-primary" for="polygonTool"
+            >Polygon</label
+          >
+        </div>
       </div>
-      <div class="mb-3">
-        <label for="endTime" class="form-label">End Time</label>
-        <input type="datetime-local" id="endTime" class="form-control" required>
-      </div>
-      <button type="submit" class="btn btn-primary w-100">Request</button>
-    </form>
-  </div>
 
-  <div id="cesiumContainer"></div>
+      <h5>Volume Request</h5>
+      <form id="volumeRequestForm">
+        <div class="mb-3">
+          <label for="startTime" class="form-label">Start Time</label>
+          <input
+            type="datetime-local"
+            id="startTime"
+            class="form-control"
+            required
+          />
+        </div>
+        <div class="mb-3">
+          <label for="endTime" class="form-label">End Time</label>
+          <input
+            type="datetime-local"
+            id="endTime"
+            class="form-control"
+            required
+          />
+        </div>
+        <button id="request-btn" type="submit" class="btn btn-primary w-100">
+          Request
+        </button>
+      </form>
+    </div>
 
-  <footer>
-    <p class="mb-0">&copy; 2025 DroneScope</p>
-  </footer>
+    <div id="cesiumContainer"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-</body>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
 </html>

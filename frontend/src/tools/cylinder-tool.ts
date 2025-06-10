@@ -1,25 +1,37 @@
 import * as Cesium from "cesium";
-import { VolumeData, CylinderToolState, VolumeRequestPayload } from "../models/volume";
-import { VolumeApiService } from "../services/volume-api.service";
+import { CylinderToolState } from "../models/cylinder-tool-state";
+import {
+  CylinderVolumeModel,
+  CylinderVolumeState,
+  CylinderVolumeStateColors,
+  CylinderVolumeRequestPayload,
+} from "../models/volume";
+import { USSService } from "../services/uss.service";
+
+const WHEEL_ACCELERATION = 1.0;
+const MAX_HEIGHT = 120.0;
+const INITIAL_HEIGHT = 50.0;
+const INITIAL_RADIUS = 50.0;
+const GUIDE_ENTITY_OFFSET = 1.0;
 
 export class CylinderTool {
+  private apiService: USSService;
   private viewer: Cesium.Viewer;
   private handler: Cesium.ScreenSpaceEventHandler;
   private annotations: Cesium.LabelCollection;
+  private floatingHeightLabel?: Cesium.Label;
   private state: CylinderToolState;
-  private volumeAdded: VolumeData[] = [];
-  private apiService: VolumeApiService;
 
-  constructor(viewer: Cesium.Viewer, apiService: VolumeApiService) {
+  constructor(viewer: Cesium.Viewer, apiService: USSService) {
     this.viewer = viewer;
     this.apiService = apiService;
     this.handler = new Cesium.ScreenSpaceEventHandler(viewer.canvas);
-    this.annotations = viewer.scene.primitives.add(new Cesium.LabelCollection());
+    this.annotations = viewer.scene.primitives.add(
+      new Cesium.LabelCollection(),
+    );
 
     this.state = {
-      height: 0,
-      radius: 50.0,
-      wheelAcceleration: 1.0,
+      addedRegions: [],
       isActive: false,
     };
 
@@ -29,73 +41,94 @@ export class CylinderTool {
   private setupEventHandlers(): void {
     // Remove default double-click behavior
     this.viewer.cesiumWidget.screenSpaceEventHandler.removeInputAction(
-      Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK
+      Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK,
     );
 
     // Left click handler
-    this.handler.setInputAction((movement: any) => {
-      this.handleLeftClick(movement);
-    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+    this.handler.setInputAction(
+      (event: Cesium.ScreenSpaceEventHandler.PositionedEvent) => {
+        this.handleLeftClick(event);
+      },
+      Cesium.ScreenSpaceEventType.LEFT_CLICK,
+    );
 
     // Mouse move handler
-    this.handler.setInputAction((movement: any) => {
-      this.handleMouseMove(movement);
-    }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+    this.handler.setInputAction(
+      (event: Cesium.ScreenSpaceEventHandler.MotionEvent) => {
+        this.handleMouseMove(event);
+      },
+      Cesium.ScreenSpaceEventType.MOUSE_MOVE,
+    );
 
     // Wheel handler
-    this.handler.setInputAction((movement: any) => {
-      this.handleWheel(movement);
+    this.handler.setInputAction((delta: number) => {
+      this.handleWheel(delta);
     }, Cesium.ScreenSpaceEventType.WHEEL);
-
-    // Right click for height annotations
-    this.handler.setInputAction((movement: any) => {
-      this.handleRightClick(movement);
-    }, Cesium.ScreenSpaceEventType.RIGHT_CLICK);
   }
 
-  private handleLeftClick(movement: any): void {
-    if (!Cesium.defined(this.state.groundPoint)) {
-      this.startCylinderCreation(movement);
+  private handleLeftClick(
+    event: Cesium.ScreenSpaceEventHandler.PositionedEvent,
+  ): void {
+    if (!this.state.isActive) return;
+
+    if (!Cesium.defined(this.state.draftModel)) {
+      this.startCylinderCreation(event);
     } else {
       this.finishCylinderCreation();
     }
   }
 
-  private startCylinderCreation(movement: any): void {
-    const ray = this.viewer.camera.getPickRay(movement.position);
-    const earthPosition = this.viewer.scene.globe.pick(ray, this.viewer.scene);
+  private startCylinderCreation(
+    event: Cesium.ScreenSpaceEventHandler.PositionedEvent,
+  ): void {
+    const ray = this.viewer.camera.getPickRay(event.position);
+    const groundPosition = this.viewer.scene.globe.pick(ray, this.viewer.scene);
 
-    if (!Cesium.defined(earthPosition)) {
+    if (!Cesium.defined(groundPosition)) {
       return;
     }
 
-    this.state.groundPoint = this.createPoint(earthPosition);
-    this.state.floatingPoint = this.createPoint(earthPosition);
-    this.state.groundPosition = earthPosition;
+    this.state.draftModel = {
+      center: Cesium.Cartographic.fromCartesian(groundPosition),
+      radius: INITIAL_RADIUS,
+      height: INITIAL_HEIGHT,
+      state: CylinderVolumeState.DRAFT,
+    };
 
     // Create max cylinder (guide)
-    this.state.maxCylinder = this.viewer.entities.add({
-      position: this.state.groundPosition,
+    this.state.guideEntity = this.viewer.entities.add({
+      position: Cesium.Cartographic.toCartesian(this.state.draftModel.center),
       cylinder: {
-        length: 120.0,
-        topRadius: this.state.radius + 1.0,
-        bottomRadius: this.state.radius + 1.0,
-        material: Cesium.Color.YELLOW.withAlpha(0.01),
+        length: MAX_HEIGHT,
+        topRadius: this.state.draftModel.radius + GUIDE_ENTITY_OFFSET,
+        bottomRadius: this.state.draftModel.radius + GUIDE_ENTITY_OFFSET,
+        material:
+          CylinderVolumeStateColors[CylinderVolumeState.DRAFT].withAlpha(0.01),
       },
     });
 
     // Create main cylinder - changed to YELLOW
-    this.state.height = 0;
-    this.state.cylinder = this.viewer.entities.add({
-      position: this.state.groundPosition,
+    this.state.draftEntity = this.viewer.entities.add({
+      position: Cesium.Cartographic.toCartesian(this.state.draftModel.center),
       cylinder: {
-        length: this.state.height,
-        topRadius: this.state.radius,
-        bottomRadius: this.state.radius,
-        material: Cesium.Color.YELLOW.withAlpha(0.5),
+        length: this.state.draftModel.height,
+        topRadius: this.state.draftModel.radius,
+        bottomRadius: this.state.draftModel.radius,
+        material:
+          CylinderVolumeStateColors[CylinderVolumeState.DRAFT].withAlpha(0.5),
         outline: true,
         outlineColor: Cesium.Color.BLACK,
       },
+    });
+
+    this.floatingHeightLabel = this.annotations.add({
+      position: groundPosition,
+      text: `${this.state.draftModel.height.toFixed(2)} m`,
+      showBackground: true,
+      font: "14px monospace",
+      horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
+      verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+      disableDepthTestDistance: Number.POSITIVE_INFINITY,
     });
 
     // Disable zoom on wheel while creating cylinder
@@ -106,25 +139,21 @@ export class CylinderTool {
   }
 
   private finishCylinderCreation(): void {
-    if (this.state.height === undefined) return;
+    if (!this.state.draftModel) {
+      console.error("finishCylinderCreation called without draft model");
+      return;
+    }
 
-    this.volumeAdded.push({
-      position: this.state.groundPosition!,
-      radius: this.state.radius,
-      height: this.state.height,
-    });
+    this.state.draftModel.entity = this.state.draftEntity;
+    this.state.addedRegions.push(this.state.draftModel);
 
-    // Clean up temporary entities
-    if (this.state.maxCylinder) this.viewer.entities.remove(this.state.maxCylinder);
-    if (this.state.groundPoint) this.viewer.entities.remove(this.state.groundPoint);
-    if (this.state.floatingPoint) this.viewer.entities.remove(this.state.floatingPoint);
-    if (this.state.floatingLabel) this.annotations.remove(this.state.floatingLabel);
+    this.viewer.entities.remove(this.state.guideEntity);
+    this.state.draftModel = null;
+    this.state.draftEntity = null;
+    this.state.guideEntity = null;
 
-    // Reset state
-    this.state.radius = 50.0;
-    this.state.groundPoint = undefined;
-    this.state.floatingPoint = undefined;
-    this.state.lineFromGroundToHeaven = undefined;
+    this.annotations.remove(this.floatingHeightLabel);
+    this.floatingHeightLabel = undefined;
 
     // Re-enable zoom on wheel
     this.viewer.scene.screenSpaceCameraController.zoomEventTypes = [
@@ -134,24 +163,31 @@ export class CylinderTool {
     ];
   }
 
-  private handleMouseMove(movement: any): void {
-    if (!Cesium.defined(this.state.floatingPoint)) return;
+  private handleMouseMove(
+    movement: Cesium.ScreenSpaceEventHandler.MotionEvent,
+  ): void {
+    if (!this.state.draftModel) return;
 
-    const feature = this.viewer.scene.pick(movement.endPosition);
-    if (!Cesium.defined(feature) || feature.id !== this.state.maxCylinder) return;
+    const hitEntity = this.viewer.scene.pick(movement.endPosition);
+    if (!Cesium.defined(hitEntity) || hitEntity.id !== this.state.guideEntity)
+      return;
 
-    const cartesian = this.viewer.scene.pickPosition(movement.endPosition);
-    if (!Cesium.defined(cartesian)) return;
+    const hitPosition = this.viewer.scene.pickPosition(movement.endPosition);
+    if (!Cesium.defined(hitPosition)) return;
 
-    const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
-    const groundCartographic = Cesium.Cartographic.fromCartesian(this.state.groundPosition!);
-    this.state.height = 2 * (cartographic.height - groundCartographic.height);
-    const heightText = `${this.state.height.toFixed(2)} m`;
+    const hitCartographicPosition =
+      Cesium.Cartographic.fromCartesian(hitPosition);
+    const groundCartographicPosition = this.state.draftModel.center;
+
+    this.state.draftModel.height =
+      2 * (hitCartographicPosition.height - groundCartographicPosition.height);
+    const heightText = `${this.state.draftModel.height.toFixed(2)} m`;
 
     // Update label
-    if (this.state.floatingLabel) this.annotations.remove(this.state.floatingLabel);
-    this.state.floatingLabel = this.annotations.add({
-      position: cartesian,
+    if (this.floatingHeightLabel)
+      this.annotations.remove(this.floatingHeightLabel);
+    this.floatingHeightLabel = this.annotations.add({
+      position: hitPosition,
       text: heightText,
       showBackground: true,
       font: "14px monospace",
@@ -160,101 +196,54 @@ export class CylinderTool {
       disableDepthTestDistance: Number.POSITIVE_INFINITY,
     });
 
-    // Update cylinder - keep YELLOW during creation
-    if (this.state.cylinder) this.viewer.entities.remove(this.state.cylinder);
-    this.state.cylinder = this.viewer.entities.add({
-      position: this.state.groundPosition,
+    if (this.state.draftEntity)
+      this.viewer.entities.remove(this.state.draftEntity);
+    this.state.draftEntity = this.viewer.entities.add({
+      position: Cesium.Cartographic.toCartesian(this.state.draftModel.center),
       cylinder: {
-        length: this.state.height,
-        topRadius: this.state.radius,
-        bottomRadius: this.state.radius,
-        material: Cesium.Color.YELLOW.withAlpha(0.5),
+        length: this.state.draftModel.height,
+        topRadius: this.state.draftModel.radius,
+        bottomRadius: this.state.draftModel.radius,
+        material:
+          CylinderVolumeStateColors[CylinderVolumeState.DRAFT].withAlpha(0.5),
         outline: true,
         outlineColor: Cesium.Color.BLACK,
       },
     });
-
-    // Fix: Use ConstantPositionProperty instead of setValue
-    if (this.state.floatingPoint && this.state.floatingPoint.position) {
-      this.state.floatingPoint.position = new Cesium.ConstantPositionProperty(cartesian);
-    }
   }
 
-  private handleWheel(movement: any): void {
-    if (!Cesium.defined(this.state.groundPoint)) return;
+  private handleWheel(delta: number): void {
+    if (!Cesium.defined(this.state.draftModel)) return;
 
-    this.state.radius += Math.sign(movement) * this.state.wheelAcceleration;
+    this.state.draftModel.radius += Math.sign(delta) * WHEEL_ACCELERATION;
 
     // Update max cylinder
-    if (this.state.maxCylinder) this.viewer.entities.remove(this.state.maxCylinder);
-    this.state.maxCylinder = this.viewer.entities.add({
-      position: this.state.groundPosition,
-      cylinder: {
-        length: 120.0,
-        topRadius: this.state.radius + 1.0,
-        bottomRadius: this.state.radius + 1.0,
-        material: Cesium.Color.YELLOW.withAlpha(0.01),
-      },
-    });
-
-    // Update main cylinder - keep YELLOW during creation
-    if (this.state.cylinder) this.viewer.entities.remove(this.state.cylinder);
-    this.state.cylinder = this.viewer.entities.add({
-      position: this.state.groundPosition,
-      cylinder: {
-        length: this.state.height,
-        topRadius: this.state.radius,
-        bottomRadius: this.state.radius,
-        material: Cesium.Color.YELLOW.withAlpha(0.5),
-        outline: true,
-        outlineColor: Cesium.Color.BLACK,
-      },
-    });
-  }
-
-  private handleRightClick(movement: any): void {
-    if (!this.viewer.scene.pickPositionSupported) return;
-
-    const feature = this.viewer.scene.pick(movement.position);
-    if (!Cesium.defined(feature)) return;
-
-    const cartesian = this.viewer.scene.pickPosition(movement.position);
-    if (!Cesium.defined(cartesian)) return;
-
-    const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
-    const height = `${cartographic.height.toFixed(2)} m`;
-
-    this.annotations.add({
-      position: cartesian,
-      text: height,
-      showBackground: true,
-      font: "14px monospace",
-      horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
-      verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-      disableDepthTestDistance: Number.POSITIVE_INFINITY,
-    });
-  }
-
-  private createPoint(worldPosition: Cesium.Cartesian3): Cesium.Entity {
-    return this.viewer.entities.add({
-      position: worldPosition,
-      point: {
-        color: Cesium.Color.RED,
-        pixelSize: 10,
-      },
-    });
-  }
-
-  private updateCylinderColor(color: Cesium.Color): void {
-    if (this.state.cylinder) {
-      this.viewer.entities.remove(this.state.cylinder);
-      this.state.cylinder = this.viewer.entities.add({
-        position: this.state.groundPosition,
+    if (this.state.guideEntity) {
+      this.viewer.entities.remove(this.state.guideEntity);
+      this.state.guideEntity = this.viewer.entities.add({
+        position: Cesium.Cartographic.toCartesian(this.state.draftModel.center),
         cylinder: {
-          length: this.state.height,
-          topRadius: this.state.radius,
-          bottomRadius: this.state.radius,
-          material: color.withAlpha(0.5),
+          length: MAX_HEIGHT,
+          topRadius: this.state.draftModel.radius + GUIDE_ENTITY_OFFSET,
+          bottomRadius: this.state.draftModel.radius + GUIDE_ENTITY_OFFSET,
+          material:
+            CylinderVolumeStateColors[CylinderVolumeState.DRAFT].withAlpha(
+              0.01,
+            ),
+        },
+      });
+
+      // Update main cylinder - keep YELLOW during creation
+      if (this.state.draftEntity)
+        this.viewer.entities.remove(this.state.draftEntity);
+      this.state.draftEntity = this.viewer.entities.add({
+        position: Cesium.Cartographic.toCartesian(this.state.draftModel.center),
+        cylinder: {
+          length: this.state.draftModel.height,
+          topRadius: this.state.draftModel.radius,
+          bottomRadius: this.state.draftModel.radius,
+          material:
+            CylinderVolumeStateColors[CylinderVolumeState.DRAFT].withAlpha(0.5),
           outline: true,
           outlineColor: Cesium.Color.BLACK,
         },
@@ -262,10 +251,30 @@ export class CylinderTool {
     }
   }
 
-  private showErrorMessage(message: string): void {
+  private updateCylinderColor(
+    model: CylinderVolumeModel,
+    color: Cesium.Color,
+  ): void {
+    if (!model.entity) return;
+
+    this.viewer.entities.remove(model.entity);
+    model.entity = this.viewer.entities.add({
+      position: Cesium.Cartographic.toCartesian(model.center),
+      cylinder: {
+        length: model.height,
+        topRadius: model.radius,
+        bottomRadius: model.radius,
+        material: color.withAlpha(0.5),
+        outline: true,
+        outlineColor: Cesium.Color.BLACK,
+      },
+    });
+  }
+
+  private showErrorMessage(model: CylinderVolumeModel, message: string): void {
     // Create a temporary error label
     const errorLabel = this.annotations.add({
-      position: this.state.groundPosition!,
+      position: Cesium.Cartographic.toCartesian(model.center),
       text: `ERROR: ${message}`,
       showBackground: true,
       backgroundColor: Cesium.Color.RED.withAlpha(0.8),
@@ -281,38 +290,43 @@ export class CylinderTool {
     setTimeout(() => {
       this.annotations.remove(errorLabel);
     }, 5000);
-
-    // Also show browser alert
-    alert(`Error: ${message}`);
   }
 
   async submitVolumeRequest(startTime: string, endTime: string): Promise<void> {
-    if (this.volumeAdded.length === 0) {
-      throw new Error('No volume data available');
+    // model is the last draft model from the state.addedregions
+    if (this.state.addedRegions.length === 0) {
+      throw new Error("No cylinder regions available to submit.");
     }
 
-    const volumeData = this.volumeAdded[this.volumeAdded.length - 1];
-    const center = Cesium.Cartographic.fromCartesian(volumeData.position);
+    // Last available draft model
+    const modelIndex = this.state.addedRegions.findIndex(
+      (model) => model.state === CylinderVolumeState.DRAFT,
+    );
+    if (modelIndex === -1) {
+      throw new Error("No draft model available to submit.");
+    }
 
-    const payload: VolumeRequestPayload = {
+    const model = this.state.addedRegions[modelIndex];
+
+    const payload: CylinderVolumeRequestPayload = {
       volume: {
         outline_circle: {
           center: {
-            lng: Cesium.Math.toDegrees(center.longitude),
-            lat: Cesium.Math.toDegrees(center.latitude),
+            lng: model.center.longitude,
+            lat: model.center.latitude,
           },
           radius: {
-            value: volumeData.radius,
+            value: model.radius,
             units: "M",
           },
         },
         altitude_lower: {
-          value: center.height,
+          value: model.center.height,
           reference: "W84",
           units: "M",
         },
         altitude_upper: {
-          value: center.height + volumeData.height,
+          value: model.center.height + model.height,
           reference: "W84",
           units: "M",
         },
@@ -328,37 +342,36 @@ export class CylinderTool {
     };
 
     try {
-      const response = await this.apiService.submitFlightPlan(payload);
-
-      // Check if the response indicates success
-      if (response.status === 201 && response.message === "Operational intent created successfully") {
-        // Success: Change cylinder to GREEN
-        this.updateCylinderColor(Cesium.Color.GREEN);
-        console.log("Volume request submitted successfully:", response);
-      } else {
-        // Unexpected response format
-        this.updateCylinderColor(Cesium.Color.RED);
-        this.showErrorMessage("Unexpected response format from server");
-      }
+      await this.apiService.submitFlightPlan(payload);
+      this.updateCylinderColor(
+        model,
+        CylinderVolumeStateColors[CylinderVolumeState.ACCEPTED],
+      );
+      model.state = CylinderVolumeState.ACCEPTED;
     } catch (error: any) {
       // Error occurred
-      this.updateCylinderColor(Cesium.Color.RED);
+      this.updateCylinderColor(
+        model,
+        CylinderVolumeStateColors[CylinderVolumeState.ERROR],
+      );
+      model.state = CylinderVolumeState.ERROR;
 
       if (error.response && error.response.status === 409) {
         // Conflict error - parse the specific error message
         const errorData = error.response.data;
-        let errorMessage = "Flight plan conflicts with existing constraints or operational intents";
+        let errorMessage =
+          "Flight plan conflicts with existing constraints or operational intents";
 
         if (errorData.detail && errorData.detail.message) {
           errorMessage = errorData.detail.message;
         }
 
-        this.showErrorMessage(errorMessage);
+        this.showErrorMessage(model, errorMessage);
         console.error("Conflict error:", errorData);
       } else {
         // Other errors
         const errorMessage = error.message || "Unknown error occurred";
-        this.showErrorMessage(errorMessage);
+        this.showErrorMessage(model, errorMessage);
         console.error("Error submitting volume request:", error);
       }
 
@@ -366,8 +379,37 @@ export class CylinderTool {
     }
   }
 
-  getVolumeData(): VolumeData[] {
-    return this.volumeAdded;
+  activate(): void {
+    this.state.isActive = true;
+  }
+
+  deactivate(): void {
+    this.state.isActive = false;
+
+    // Clean up any active drawing state
+    if (this.state.draftEntity) {
+      this.viewer.entities.remove(this.state.draftEntity);
+      this.state.draftEntity = undefined;
+    }
+
+    if (this.state.guideEntity) {
+      this.viewer.entities.remove(this.state.guideEntity);
+      this.state.guideEntity = undefined;
+    }
+
+    if (this.floatingHeightLabel) {
+      this.annotations.remove(this.floatingHeightLabel);
+      this.floatingHeightLabel = undefined;
+    }
+
+    this.state.draftModel = undefined;
+
+    // Re-enable zoom on wheel
+    this.viewer.scene.screenSpaceCameraController.zoomEventTypes = [
+      Cesium.CameraEventType.RIGHT_DRAG,
+      Cesium.CameraEventType.WHEEL,
+      Cesium.CameraEventType.PINCH,
+    ];
   }
 
   destroy(): void {

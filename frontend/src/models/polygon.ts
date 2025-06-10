@@ -1,0 +1,50 @@
+import * as Cesium from "cesium";
+
+export enum PolygonVolumeState {
+  DRAFT = "DRAFT",
+  ACCEPTED = "ACCEPTED",
+  ERROR = "ERROR",
+}
+
+export const PolygonVolumeStateColors = {
+  [PolygonVolumeState.DRAFT]: Cesium.Color.ORANGE,
+  [PolygonVolumeState.ACCEPTED]: Cesium.Color.GREEN,
+  [PolygonVolumeState.ERROR]: Cesium.Color.RED,
+} as const;
+
+export interface PolygonVolumeModel {
+  vertices: Cesium.Cartographic[];
+  minHeight: number;
+  maxHeight: number;
+  entity?: Cesium.Entity;
+  state: PolygonVolumeState;
+}
+
+export interface PolygonVolumeRequestPayload {
+  volume: {
+    outline_polygon: {
+      vertices: Array<{
+        lng: number;
+        lat: number;
+      }>;
+    };
+    altitude_lower: {
+      value: number;
+      reference: string;
+      units: string;
+    };
+    altitude_upper: {
+      value: number;
+      reference: string;
+      units: string;
+    };
+  };
+  time_start: {
+    value: string;
+    format: string;
+  };
+  time_end: {
+    value: string;
+    format: string;
+  };
+}

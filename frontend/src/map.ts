@@ -1,11 +1,14 @@
 import * as Cesium from "cesium";
 import { CylinderTool } from "./tools/cylinder-tool";
-import { VolumeApiService } from "./services/volume-api.service";
+import { PolygonTool } from "./tools/polygon-tool";
+import { USSService } from "./services/uss.service";
 
 export class Map {
   private viewer: Cesium.Viewer;
   private cylinderTool: CylinderTool;
-  private volumeApiService: VolumeApiService;
+  private polygonTool: PolygonTool;
+  private ussService: USSService;
+  private activeTool: "cylinder" | "polygon" = "cylinder";
 
   constructor(container: string) {
     // Set Ion access token if available
@@ -30,11 +33,13 @@ export class Map {
     this.viewer.cesiumWidget.creditContainer.remove();
 
     // Initialize services and tools
-    this.volumeApiService = new VolumeApiService();
-    this.cylinderTool = new CylinderTool(this.viewer, this.volumeApiService);
+    this.ussService = new USSService();
+    this.cylinderTool = new CylinderTool(this.viewer, this.ussService);
+    this.polygonTool = new PolygonTool(this.viewer, this.ussService);
 
     this.initializeMap();
     this.setupVolumeRequestForm();
+    this.setupToolSelection();
   }
 
   private async initializeMap(): Promise<void> {
@@ -52,20 +57,59 @@ export class Map {
     // Set initial camera position
     this.viewer.camera.lookAt(
       Cesium.Cartesian3.fromDegrees(-45.873938, -23.212619, 200.0),
-      new Cesium.Cartesian3(800.0, 800.0, 800.0)
+      new Cesium.Cartesian3(800.0, 800.0, 800.0),
     );
     this.viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
   }
 
+  private setupToolSelection(): void {
+    const toolRadios = document.querySelectorAll('input[name="drawingTool"]');
+
+    toolRadios.forEach((radio) => {
+      radio.addEventListener("change", (event) => {
+        const target = event.target as HTMLInputElement;
+        if (target.checked) {
+          this.switchTool(target.value as "cylinder" | "polygon");
+        }
+      });
+    });
+
+    // Initialize with cylinder tool active
+    this.switchTool("cylinder");
+  }
+
+  private switchTool(tool: "cylinder" | "polygon"): void {
+    // Deactivate current tool
+    if (this.activeTool === "cylinder") {
+      this.cylinderTool.deactivate?.();
+    } else {
+      this.polygonTool.deactivate();
+    }
+
+    // Activate new tool
+    this.activeTool = tool;
+    if (tool === "cylinder") {
+      this.cylinderTool.activate?.();
+    } else {
+      this.polygonTool.activate();
+    }
+  }
+
   private setupVolumeRequestForm(): void {
-    const volumeRequestForm = document.getElementById("volumeRequestForm") as HTMLFormElement;
+    const volumeRequestForm = document.getElementById(
+      "volumeRequestForm",
+    ) as HTMLFormElement;
 
     if (volumeRequestForm) {
       volumeRequestForm.addEventListener("submit", async (event: Event) => {
         event.preventDefault();
 
-        const startTimeInput = document.getElementById("startTime") as HTMLInputElement;
-        const endTimeInput = document.getElementById("endTime") as HTMLInputElement;
+        const startTimeInput = document.getElementById(
+          "startTime",
+        ) as HTMLInputElement;
+        const endTimeInput = document.getElementById(
+          "endTime",
+        ) as HTMLInputElement;
 
         if (startTimeInput && endTimeInput) {
           const startTime = startTimeInput.value;
@@ -83,20 +127,27 @@ export class Map {
     }
   }
 
-  private async handleVolumeRequest(startTime: string, endTime: string): Promise<void> {
-    const submitButton = document.querySelector('#volumeRequestForm button[type="submit"]') as HTMLButtonElement;
+  private async handleVolumeRequest(
+    startTime: string,
+    endTime: string,
+  ): Promise<void> {
+    const submitButton = document.querySelector(
+      '#volumeRequestForm button[type="submit"]',
+    ) as HTMLButtonElement;
 
     if (submitButton) {
       submitButton.disabled = true;
       submitButton.textContent = "Requesting...";
 
       try {
-        await this.cylinderTool.submitVolumeRequest(startTime, endTime);
+        if (this.activeTool === "cylinder") {
+          await this.cylinderTool.submitVolumeRequest(startTime, endTime);
+        } else {
+          await this.polygonTool.submitVolumeRequest(startTime, endTime);
+        }
         console.log("Volume request submitted successfully");
-        alert(`Request submitted for period: ${startTime} to ${endTime}`);
       } catch (error) {
         console.error("Error submitting volume request:", error);
-        alert("Error submitting request. Please try again.");
       } finally {
         setTimeout(() => {
           submitButton.disabled = false;
@@ -114,8 +165,13 @@ export class Map {
     return this.cylinderTool;
   }
 
+  getPolygonTool(): PolygonTool {
+    return this.polygonTool;
+  }
+
   destroy(): void {
     this.cylinderTool.destroy();
+    this.polygonTool.destroy();
     this.viewer.destroy();
   }
 }
