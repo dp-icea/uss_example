@@ -7,15 +7,14 @@ export enum PolygonVolumeState {
 }
 
 export const PolygonVolumeStateColors = {
-  [PolygonVolumeState.DRAFT]: Cesium.Color.ORANGE,
+  [PolygonVolumeState.DRAFT]: Cesium.Color.YELLOW,
   [PolygonVolumeState.ACCEPTED]: Cesium.Color.GREEN,
   [PolygonVolumeState.ERROR]: Cesium.Color.RED,
 } as const;
 
 export interface PolygonVolumeModel {
-  vertices: Cesium.Cartographic[];
-  minHeight: number;
-  maxHeight: number;
+  base: Cesium.Cartographic[];
+  height: number;
   entity?: Cesium.Entity;
   state: PolygonVolumeState;
 }

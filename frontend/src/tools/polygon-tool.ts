@@ -16,6 +16,8 @@ export class PolygonTool {
   private viewer: Cesium.Viewer;
   private handler: Cesium.ScreenSpaceEventHandler;
   private annotations: Cesium.LabelCollection;
+  private floatingHeightLabel?: Cesium.Label;
+  private floatingAreaLabel?: Cesium.Label;
   private state: PolygonToolState;
 
   constructor(viewer: Cesium.Viewer, apiService: USSService) {
@@ -28,8 +30,7 @@ export class PolygonTool {
 
     this.state = {
       addedRegions: [],
-      vertices: [],
-      isDrawing: false,
+      isDrawingBase: false,
       isActive: false,
     };
 
@@ -45,7 +46,7 @@ export class PolygonTool {
       Cesium.ScreenSpaceEventType.LEFT_CLICK,
     );
 
-    // Right click handler to finish polygon
+    // Right click handler to finish base polygon
     this.handler.setInputAction(
       (event: Cesium.ScreenSpaceEventHandler.PositionedEvent) => {
         this.handleRightClick(event);
@@ -67,6 +68,42 @@ export class PolygonTool {
   ): void {
     if (!this.state.isActive) return;
 
+    // Start drawing the base of the polygon
+    if (!this.state.draftModel) {
+      this.startBasePolygonCreation(event);
+    } else if (this.state.isDrawingBase) {
+      this.updateBasePolygonCreation(event);
+    } else {
+      this.finishPolygonCreation(event);
+    }
+  }
+
+  private startBasePolygonCreation(
+    event: Cesium.ScreenSpaceEventHandler.PositionedEvent,
+  ): void {
+    const ray = this.viewer.camera.getPickRay(event.position);
+    const groundPosition = this.viewer.scene.globe.pick(ray, this.viewer.scene);
+
+    if (!Cesium.defined(groundPosition)) {
+      return;
+    }
+
+    this.state.draftModel = {
+      base: [],
+      height: DEFAULT_HEIGHT,
+      state: PolygonVolumeState.DRAFT,
+    };
+
+    this.state.draftModel.base.push(
+      Cesium.Cartographic.fromCartesian(groundPosition),
+    );
+
+    this.state.isDrawingBase = true;
+  }
+
+  private updateBasePolygonCreation(
+    event: Cesium.ScreenSpaceEventHandler.PositionedEvent,
+  ): void {
     const ray = this.viewer.camera.getPickRay(event.position);
     const groundPosition = this.viewer.scene.globe.pick(ray, this.viewer.scene);
 
@@ -75,30 +112,176 @@ export class PolygonTool {
     }
 
     const cartographic = Cesium.Cartographic.fromCartesian(groundPosition);
-    this.state.vertices.push(cartographic);
+    this.state.draftModel.base.push(cartographic);
 
-    if (!this.state.isDrawing) {
-      this.startPolygonCreation();
+    if (this.state.draftEntity) {
+      this.viewer.entities.remove(this.state.draftEntity);
     }
 
-    this.updatePolygon();
+    const vertices = this.state.draftModel.base.slice();
+    vertices.push(cartographic);
+
+    this.state.draftEntity = this.viewer.entities.add({
+      polygon: {
+        hierarchy: new Cesium.PolygonHierarchy(
+          vertices.map((vertex) => Cesium.Cartographic.toCartesian(vertex)),
+        ),
+        material:
+          PolygonVolumeStateColors[PolygonVolumeState.DRAFT].withAlpha(0.5),
+      },
+    });
+  }
+
+  private finishPolygonCreation(
+    event: Cesium.ScreenSpaceEventHandler.PositionedEvent,
+  ): void {
+    if (!this.state.isActive) return;
+
+    // Create guide entity for the base polygon
+    this.viewer.entities.remove(this.state.guideEntity);
+
+    this.state.isDrawingBase = false;
+
+    if (this.state.draftEntity) {
+      this.state.draftEntity = undefined;
+    }
+
+    this.state.draftModel = undefined;
   }
 
   private handleRightClick(
     event: Cesium.ScreenSpaceEventHandler.PositionedEvent,
   ): void {
-    if (!this.state.isActive || !this.state.isDrawing) return;
+    if (!this.state.isActive || !this.state.isDrawingBase) return;
 
-    if (this.state.vertices.length >= 3) {
-      this.finishPolygonCreation();
+    if (!this.state.draftModel || this.state.draftModel.base.length < 3) {
+      this.showErrorMessage(
+        this.state.draftModel,
+        "At least 3 points are required to form a polygon.",
+      );
+      return;
     }
+
+    this.state.isDrawingBase = false;
+
+    if (this.state.draftEntity) {
+      this.viewer.entities.remove(this.state.draftEntity);
+    }
+
+    console.log(this.state.draftModel.base);
+    this.state.draftEntity = this.viewer.entities.add({
+      polygon: {
+        hierarchy: new Cesium.PolygonHierarchy(
+          this.state.draftModel.base.map((vertex) =>
+            Cesium.Cartographic.toCartesian(vertex),
+          ),
+        ),
+        material:
+          PolygonVolumeStateColors[PolygonVolumeState.DRAFT].withAlpha(0.5),
+        height: this.getMinHeight(this.state.draftModel.base),
+        extrudedHeight:
+          this.getMinHeight(this.state.draftModel.base) +
+          this.state.draftModel.height,
+        outline: true,
+        outlineColor: Cesium.Color.BLACK,
+        outlineWidth: 5,
+      },
+    });
+    console.log("Draft Entity created:", this.state.draftEntity);
+
+    this.state.guideEntity = this.viewer.entities.add({
+      polygon: {
+        hierarchy: new Cesium.PolygonHierarchy(
+          this.state.draftModel.base.map((vertex) =>
+            Cesium.Cartographic.toCartesian(vertex),
+          ),
+        ),
+        material: Cesium.Color.GREY.withAlpha(0.01),
+        height: this.getMinHeight(this.state.draftModel.base),
+        extrudedHeight:
+          this.getMinHeight(this.state.draftModel.base) + MAX_HEIGHT,
+      },
+    });
+    console.log("Guide Entity created:", this.state.guideEntity);
   }
 
-  private handleMouseMove(
+  private getMinHeight(vertices: Cesium.Cartographic[]): number {
+    if (!vertices || vertices.length === 0) {
+      return 0;
+    }
+
+    return vertices.reduce((min, vertex) => {
+      return Math.min(min, vertex.height);
+    }, 0);
+  }
+
+  private handleHeightChange(
     event: Cesium.ScreenSpaceEventHandler.MotionEvent,
   ): void {
-    if (!this.state.isActive || !this.state.isDrawing) return;
+    if (!this.state.isActive || this.state.isDrawingBase) return;
 
+    if (!this.state.draftModel || !this.state.guideEntity) {
+      return;
+    }
+
+    const hitEntity = this.viewer.scene.pick(event.endPosition);
+    if (
+      !Cesium.defined(hitEntity) ||
+      (hitEntity.id !== this.state.guideEntity &&
+        hitEntity.id !== this.state.draftEntity)
+    ) {
+      return;
+    }
+
+    const hitPosition = this.viewer.scene.pickPosition(event.endPosition);
+    if (!Cesium.defined(hitPosition)) {
+      return;
+    }
+
+    const hitCartographicPosition =
+      Cesium.Cartographic.fromCartesian(hitPosition);
+    const minHeight = this.getMinHeight(this.state.draftModel.base);
+
+    this.state.draftModel.height = hitCartographicPosition.height - minHeight;
+    const heightText = `${this.state.draftModel.height.toFixed(2)} m`;
+
+    // Update label
+    if (this.floatingHeightLabel)
+      this.annotations.remove(this.floatingHeightLabel);
+    this.floatingHeightLabel = this.annotations.add({
+      position: hitPosition,
+      text: heightText,
+      showBackground: true,
+      font: "14px monospace",
+      horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
+      verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+      disableDepthTestDistance: Number.POSITIVE_INFINITY,
+    });
+
+    if (this.state.draftEntity)
+      this.viewer.entities.remove(this.state.draftEntity);
+    this.state.draftEntity = this.viewer.entities.add({
+      polygon: {
+        hierarchy: new Cesium.PolygonHierarchy(
+          this.state.draftModel.base.map((vertex) =>
+            Cesium.Cartographic.toCartesian(vertex),
+          ),
+        ),
+        height: this.getMinHeight(this.state.draftModel.base),
+        extrudedHeight:
+          this.getMinHeight(this.state.draftModel.base) +
+          this.state.draftModel.height,
+        material:
+          PolygonVolumeStateColors[PolygonVolumeState.DRAFT].withAlpha(0.5),
+        outline: true,
+        outlineColor: Cesium.Color.BLACK,
+      },
+    });
+  }
+
+  private handleBaseChange(
+    event: Cesium.ScreenSpaceEventHandler.MotionEvent,
+  ): void {
     const ray = this.viewer.camera.getPickRay(event.endPosition);
     const groundPosition = this.viewer.scene.globe.pick(ray, this.viewer.scene);
 
@@ -107,106 +290,45 @@ export class PolygonTool {
     }
 
     const cartographic = Cesium.Cartographic.fromCartesian(groundPosition);
-    this.updateDynamicPolygon(cartographic);
-  }
 
-  private startPolygonCreation(): void {
-    this.state.isDrawing = true;
-    this.state.draftModel = {
-      vertices: [...this.state.vertices],
-      minHeight: 0,
-      maxHeight: DEFAULT_HEIGHT,
-      state: PolygonVolumeState.DRAFT,
-    };
-  }
+    const vertices = this.state.draftModel.base.slice();
+    vertices.push(cartographic);
 
-  private updatePolygon(): void {
-    if (!this.state.draftModel) return;
-
-    this.state.draftModel.vertices = [...this.state.vertices];
-    this.createPolygonEntity();
-  }
-
-  private updateDynamicPolygon(mousePosition: Cesium.Cartographic): void {
-    if (!this.state.draftModel) return;
-
-    const dynamicVertices = [...this.state.vertices, mousePosition];
-    this.createPolygonEntity(dynamicVertices);
-  }
-
-  private createPolygonEntity(vertices?: Cesium.Cartographic[]): void {
-    if (!this.state.draftModel) return;
-
-    const polygonVertices = vertices || this.state.draftModel.vertices;
-
-    if (polygonVertices.length < 2) return;
-
-    // Remove existing entity
     if (this.state.draftEntity) {
       this.viewer.entities.remove(this.state.draftEntity);
     }
 
-    // Convert to Cartesian3 array
-    const positions = polygonVertices.map((vertex) =>
-      Cesium.Cartographic.toCartesian(vertex),
-    );
-
     this.state.draftEntity = this.viewer.entities.add({
       polygon: {
-        hierarchy: positions,
+        hierarchy: new Cesium.PolygonHierarchy(
+          vertices.map((vertex) => Cesium.Cartographic.toCartesian(vertex)),
+        ),
         material:
           PolygonVolumeStateColors[PolygonVolumeState.DRAFT].withAlpha(0.5),
         outline: true,
         outlineColor: Cesium.Color.BLACK,
-        extrudedHeight: this.state.draftModel.maxHeight,
-        height: this.state.draftModel.minHeight,
       },
     });
   }
 
-  private finishPolygonCreation(): void {
-    if (!this.state.draftModel || this.state.vertices.length < 3) {
-      return;
-    }
-
-    this.state.draftModel.entity = this.state.draftEntity;
-    this.state.addedRegions.push(this.state.draftModel);
-
-    // Reset state
-    this.state.draftModel = undefined;
-    this.state.draftEntity = undefined;
-    this.state.vertices = [];
-    this.state.isDrawing = false;
-  }
-
-  private updatePolygonColor(
-    model: PolygonVolumeModel,
-    color: Cesium.Color,
+  private handleMouseMove(
+    event: Cesium.ScreenSpaceEventHandler.MotionEvent,
   ): void {
-    if (!model.entity) return;
+    if (!this.state.isActive) return;
 
-    this.viewer.entities.remove(model.entity);
+    if (!this.state.draftModel) return;
 
-    const positions = model.vertices.map((vertex) =>
-      Cesium.Cartographic.toCartesian(vertex),
-    );
-
-    model.entity = this.viewer.entities.add({
-      polygon: {
-        hierarchy: positions,
-        material: color.withAlpha(0.5),
-        outline: true,
-        outlineColor: Cesium.Color.BLACK,
-        extrudedHeight: model.maxHeight,
-        height: model.minHeight,
-      },
-    });
+    if (this.state.isDrawingBase) {
+      this.handleBaseChange(event);
+    } else {
+      this.handleHeightChange(event);
+    }
   }
 
   private showErrorMessage(model: PolygonVolumeModel, message: string): void {
-    if (model.vertices.length === 0) return;
+    if (model.base.length === 0) return;
 
-    const centerPosition = this.calculatePolygonCenter(model.vertices);
+    const centerPosition = this.calculatePolygonCenter(model.base);
     const errorLabel = this.annotations.add({
       position: Cesium.Cartographic.toCartesian(centerPosition),
       text: `ERROR: ${message}`,
@@ -259,21 +381,23 @@ export class PolygonTool {
 
     const model = this.state.addedRegions[modelIndex];
 
+    const minHeight = this.getMinHeight(model.base);
+
     const payload: PolygonVolumeRequestPayload = {
       volume: {
         outline_polygon: {
-          vertices: model.vertices.map((vertex) => ({
+          vertices: model.base.map((vertex) => ({
             lng: vertex.longitude,
             lat: vertex.latitude,
           })),
         },
         altitude_lower: {
-          value: model.minHeight,
+          value: minHeight,
           reference: "W84",
           units: "M",
         },
         altitude_upper: {
-          value: model.maxHeight,
+          value: minHeight + model.height,
           reference: "W84",
           units: "M",
         },
@@ -290,16 +414,10 @@ export class PolygonTool {
 
     try {
       await this.apiService.submitFlightPlan(payload);
-      this.updatePolygonColor(
-        model,
-        PolygonVolumeStateColors[PolygonVolumeState.ACCEPTED],
-      );
+      // TODO: Make the polygon green
       model.state = PolygonVolumeState.ACCEPTED;
     } catch (error: any) {
-      this.updatePolygonColor(
-        model,
-        PolygonVolumeStateColors[PolygonVolumeState.ERROR],
-      );
+      // TODO: Make the polygon red
       model.state = PolygonVolumeState.ERROR;
 
       if (error.response && error.response.status === 409) {
@@ -329,8 +447,7 @@ export class PolygonTool {
 
   deactivate(): void {
     this.state.isActive = false;
-    this.state.isDrawing = false;
-    this.state.vertices = [];
+    this.state.isDrawingBase = false;
 
     if (this.state.draftEntity) {
       this.viewer.entities.remove(this.state.draftEntity);

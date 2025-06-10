@@ -6,7 +6,6 @@ export interface PolygonToolState {
   draftModel?: PolygonVolumeModel;
   draftEntity?: Cesium.Entity;
   guideEntity?: Cesium.Entity;
-  vertices: Cesium.Cartographic[];
-  isDrawing: boolean;
+  isDrawingBase: boolean;
   isActive: boolean;
 }
