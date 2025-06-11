@@ -1,7 +1,12 @@
 import * as Cesium from "cesium";
+import {
+  CylinderVolumeRequestPayload,
+  CylinderVolumeSchema,
+} from "./models/volume";
 import { CylinderTool } from "./tools/cylinder-tool";
 import { PolygonTool } from "./tools/polygon-tool";
 import { USSService } from "./services/uss.service";
+import { PolygonVolumeSchema } from "./models/polygon";
 
 export class Map {
   private viewer: Cesium.Viewer;
@@ -39,6 +44,7 @@ export class Map {
 
     this.initializeMap();
     this.setupVolumeRequestForm();
+    this.setupConflictQuery();
     this.setupToolSelection();
   }
 
@@ -127,6 +133,45 @@ export class Map {
     }
   }
 
+  private setupConflictQuery(): void {
+    const queryButton = document.getElementById(
+      "query-conflicts-btn",
+    ) as HTMLButtonElement;
+
+    console.log("Setting up conflict query button");
+
+    if (queryButton) {
+      console.log("Adding event listener");
+      queryButton.addEventListener("click", async () => {
+        console.log("Query button clicked");
+
+        const startTimeInput = document.getElementById(
+          "startTime",
+        ) as HTMLInputElement;
+        const endTimeInput = document.getElementById(
+          "endTime",
+        ) as HTMLInputElement;
+
+        if (startTimeInput && endTimeInput) {
+          const startTime = startTimeInput.value;
+          const endTime = endTimeInput.value;
+
+          // Validate that end time is after start time
+          if (new Date(startTime) >= new Date(endTime)) {
+            alert("End time must be after start time");
+            return;
+          }
+
+          try {
+            await this.queryConflicts(startTime, endTime);
+          } catch (error) {
+            console.error("Error querying conflicts:", error);
+          }
+        }
+      });
+    }
+  }
+
   private async handleVolumeRequest(
     startTime: string,
     endTime: string,
@@ -152,6 +197,112 @@ export class Map {
         setTimeout(() => {
           submitButton.disabled = false;
           submitButton.textContent = "Request";
+        }, 2000);
+      }
+    }
+  }
+
+  private async queryConflicts(
+    startTime: string,
+    endTime: string,
+  ): Promise<void> {
+    console.log("Querying conflicts from", startTime, "to", endTime);
+    const queryButton = document.getElementById(
+      "query-conflicts-btn",
+    ) as HTMLButtonElement;
+
+    if (queryButton) {
+      queryButton.disabled = true;
+      queryButton.textContent = "Querying...";
+
+      try {
+        const cameraPosition = this.viewer.camera.positionCartographic;
+
+        // Sample terrain height at camera's longitude/latitude
+        const positions = [
+          new Cesium.Cartographic(
+            cameraPosition.longitude,
+            cameraPosition.latitude,
+          ),
+        ];
+
+        const terrainProvider = this.viewer.terrainProvider;
+        const updatedPositions = await Cesium.sampleTerrainMostDetailed(
+          terrainProvider,
+          positions,
+        );
+
+        // Get the actual ground height at this position
+        const groundHeight = updatedPositions[0].height || 0;
+
+        console.log(groundHeight);
+
+        const payload: CylinderVolumeRequestPayload = {
+          volume: {
+            outline_circle: {
+              center: {
+                lng: cameraPosition.longitude,
+                lat: cameraPosition.latitude,
+              },
+              radius: {
+                value: 10000, // Example radius, adjust as needed
+                units: "M",
+              },
+            },
+            altitude_lower: {
+              value: groundHeight,
+              reference: "W84",
+              units: "M",
+            },
+            altitude_upper: {
+              value: groundHeight + 1000,
+              reference: "W84",
+              units: "M",
+            },
+          },
+          time_start: {
+            value: startTime,
+            format: "RFC3339",
+          },
+          time_end: {
+            value: endTime,
+            format: "RFC3339",
+          },
+        };
+
+        const conflicts = await this.ussService.queryConflicts(payload);
+
+        // Iterate over conflicts, when CylinderVolumeSchema is returned, ask to display it in the CYlinderTool
+
+        conflicts.data.constraints.forEach((constraint) => {
+          // How to verify the type CylinderVolumeSchema or PolygonVolumeSchema?
+          if ("outline_circle" in constraint.volume) {
+            this.cylinderTool.drawConflictRegion(
+              constraint as CylinderVolumeSchema,
+            );
+          } else if ("outline_polygon" in constraint.volume) {
+            this.polygonTool.drawConflictRegion(
+              constraint as PolygonVolumeSchema,
+            );
+          }
+        });
+
+        conflicts.data.operational_intents.forEach((intent) => {
+          // How to verify the type CylinderVolumeSchema or PolygonVolumeSchema?
+          if ("outline_circle" in intent.volume) {
+            this.cylinderTool.drawConflictRegion(
+              intent as CylinderVolumeSchema,
+            );
+          } else if ("outline_polygon" in intent.volume) {
+            this.polygonTool.drawConflictRegion(intent as PolygonVolumeSchema);
+          }
+        });
+      } catch (error) {
+        console.error("Error querying conflicts:", error);
+      } finally {
+        setTimeout(() => {
+          queryButton.disabled = false;
+          queryButton.textContent = "Query Conflicts";
         }, 2000);
       }
     }

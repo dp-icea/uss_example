@@ -11,9 +11,12 @@ async def get_constraints_volume(constraints: List[ConstraintReferenceSchema]) -
     volumes: List[AreaOfInterestSchema] = []
 
     for constraint in constraints:
-        uss = USSService(constraint.uss_base_url)
-        res =  await uss.get_constraint(constraint.id)
-        volumes += res.constraint.details.volumes
+        try:
+            uss = USSService(constraint.uss_base_url)
+            res =  await uss.get_constraint(constraint.id)
+            volumes += res.constraint.details.volumes
+        except Exception as _:
+            pass
 
     return volumes
 

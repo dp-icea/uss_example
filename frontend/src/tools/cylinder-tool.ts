@@ -1,6 +1,7 @@
 import * as Cesium from "cesium";
 import { CylinderToolState } from "../models/cylinder-tool-state";
 import {
+  CylinderVolumeSchema,
   CylinderVolumeModel,
   CylinderVolumeState,
   CylinderVolumeStateColors,
@@ -382,6 +383,31 @@ export class CylinderTool {
 
       throw error;
     }
+  }
+
+  public drawConflictRegion(region: CylinderVolumeSchema): void {
+    const center = new Cesium.Cartographic(
+      region.volume.outline_circle.center.lng,
+      region.volume.outline_circle.center.lat,
+      region.volume.altitude_lower.value,
+    );
+
+    const radius = region.volume.outline_circle.radius.value;
+
+    const height =
+      region.volume.altitude_upper.value - region.volume.altitude_lower.value;
+
+    this.viewer.entities.add({
+      position: Cesium.Cartographic.toCartesian(center),
+      cylinder: {
+        length: this.getCylinderLength(height),
+        topRadius: radius,
+        bottomRadius: radius,
+        material: Cesium.Color.GREY.withAlpha(0.5),
+        outline: true,
+        outlineColor: Cesium.Color.RED,
+      },
+    });
   }
 
   activate(): void {

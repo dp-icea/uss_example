@@ -20,6 +20,39 @@ export interface CylinderVolumeModel {
   state: CylinderVolumeState;
 }
 
+export interface CylinderVolumeSchema {
+  volume: {
+    outline_circle: {
+      center: {
+        lng: number;
+        lat: number;
+      };
+      radius: {
+        value: number;
+        units: string;
+      };
+    };
+    altitude_lower: {
+      value: number;
+      reference: string;
+      units: string;
+    };
+    altitude_upper: {
+      value: number;
+      reference: string;
+      units: string;
+    };
+  };
+  time_start: {
+    value: string;
+    format: string;
+  };
+  time_end: {
+    value: string;
+    format: string;
+  };
+}
+
 export interface CylinderVolumeRequestPayload {
   volume: {
     outline_circle: {

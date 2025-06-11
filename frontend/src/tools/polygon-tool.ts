@@ -5,6 +5,7 @@ import {
   PolygonVolumeState,
   PolygonVolumeStateColors,
   PolygonVolumeRequestPayload,
+  PolygonVolumeSchema,
 } from "../models/polygon";
 import { USSService } from "../services/uss.service";
 
@@ -428,9 +429,13 @@ export class PolygonTool {
       await this.apiService.submitFlightPlan(payload);
       // TODO: Make the polygon green
       model.state = PolygonVolumeState.ACCEPTED;
+
+      this.drawModel(model);
     } catch (error: any) {
       // TODO: Make the polygon red
       model.state = PolygonVolumeState.ERROR;
+
+      this.drawModel(model);
 
       if (error.response && error.response.status === 409) {
         const errorData = error.response.data;
@@ -451,6 +456,55 @@ export class PolygonTool {
 
       throw error;
     }
+  }
+
+  public drawModel(model: PolygonVolumeModel): void {
+    if (!model.entity) {
+      return;
+    }
+
+    this.viewer.entities.remove(model.entity);
+    model.entity = this.viewer.entities.add({
+      polygon: {
+        hierarchy: new Cesium.PolygonHierarchy(
+          model.base.map((vertex) => Cesium.Cartographic.toCartesian(vertex)),
+        ),
+        material: PolygonVolumeStateColors[model.state].withAlpha(0.5),
+        height: this.getMinHeight(model.base),
+        extrudedHeight: this.getMinHeight(model.base) + model.height,
+        outline: true,
+        outlineColor: Cesium.Color.BLACK,
+      },
+    });
+  }
+
+  public drawConflictRegion(region: PolygonVolumeSchema): void {
+    const minHeight = region.volume.altitude_lower.value;
+    const maxHeight = region.volume.altitude_upper.value;
+
+    const vertices = region.volume.outline_polygon.vertices.map(
+      (vertex) => new Cesium.Cartographic(vertex.lng, vertex.lat, minHeight),
+    );
+
+    const polygonEntity = this.viewer.entities.add({
+      polygon: {
+        hierarchy: new Cesium.PolygonHierarchy(
+          vertices.map((vertex) => Cesium.Cartographic.toCartesian(vertex)),
+        ),
+        material: Cesium.Color.GREY.withAlpha(0.5),
+        height: minHeight,
+        extrudedHeight: maxHeight,
+        outline: true,
+        outlineColor: Cesium.Color.RED,
+      },
+    });
+
+    this.state.addedRegions.push({
+      base: vertices,
+      height: maxHeight - minHeight,
+      entity: polygonEntity,
+      state: PolygonVolumeState.ERROR,
+    });
   }
 
   activate(): void {
