@@ -17,6 +17,7 @@ export class PolygonTool {
   private handler: Cesium.ScreenSpaceEventHandler;
   private annotations: Cesium.LabelCollection;
   private floatingHeightLabel?: Cesium.Label;
+  // TODO: Implement later
   private floatingAreaLabel?: Cesium.Label;
   private state: PolygonToolState;
 
@@ -137,16 +138,26 @@ export class PolygonTool {
   ): void {
     if (!this.state.isActive) return;
 
-    // Create guide entity for the base polygon
-    this.viewer.entities.remove(this.state.guideEntity);
+    if (!this.state.draftModel) {
+      console.error("finishPolygonCreation called without draftModel");
+      return;
+    }
 
+    if (this.state.draftModel.base.length < 3) {
+      console.error("Not enough points in the base of the polygon");
+      return;
+    }
+
+    this.state.draftModel.entity = this.state.draftEntity;
+    this.state.addedRegions.push(this.state.draftModel);
+
+    this.viewer.entities.remove(this.state.guideEntity);
     this.state.isDrawingBase = false;
+    this.state.draftModel = undefined;
 
     if (this.state.draftEntity) {
       this.state.draftEntity = undefined;
     }
-
-    this.state.draftModel = undefined;
   }
 
   private handleRightClick(
@@ -187,7 +198,6 @@ export class PolygonTool {
         outlineWidth: 5,
       },
     });
-    console.log("Draft Entity created:", this.state.draftEntity);
 
     this.state.guideEntity = this.viewer.entities.add({
       polygon: {
@@ -212,7 +222,7 @@ export class PolygonTool {
 
     return vertices.reduce((min, vertex) => {
       return Math.min(min, vertex.height);
-    }, 0);
+    }, Infinity);
   }
 
   private handleHeightChange(
@@ -368,6 +378,8 @@ export class PolygonTool {
   }
 
   async submitVolumeRequest(startTime: string, endTime: string): Promise<void> {
+    console.info("Trying to submit volume request...");
+
     if (this.state.addedRegions.length === 0) {
       throw new Error("No polygon regions available to submit.");
     }

@@ -8,11 +8,12 @@ import {
 } from "../models/volume";
 import { USSService } from "../services/uss.service";
 
+const SCALE = 2.0;
 const WHEEL_ACCELERATION = 1.0;
 const MAX_HEIGHT = 120.0;
 const INITIAL_HEIGHT = 50.0;
 const INITIAL_RADIUS = 50.0;
-const GUIDE_ENTITY_OFFSET = 1.0;
+const GUIDE_ENTITY_OFFSET = 0.0;
 
 export class CylinderTool {
   private apiService: USSService;
@@ -99,7 +100,7 @@ export class CylinderTool {
     this.state.guideEntity = this.viewer.entities.add({
       position: Cesium.Cartographic.toCartesian(this.state.draftModel.center),
       cylinder: {
-        length: MAX_HEIGHT,
+        length: this.getCylinderLength(MAX_HEIGHT),
         topRadius: this.state.draftModel.radius + GUIDE_ENTITY_OFFSET,
         bottomRadius: this.state.draftModel.radius + GUIDE_ENTITY_OFFSET,
         material:
@@ -111,7 +112,7 @@ export class CylinderTool {
     this.state.draftEntity = this.viewer.entities.add({
       position: Cesium.Cartographic.toCartesian(this.state.draftModel.center),
       cylinder: {
-        length: this.state.draftModel.height,
+        length: this.getCylinderLength(this.state.draftModel.height),
         topRadius: this.state.draftModel.radius,
         bottomRadius: this.state.draftModel.radius,
         material:
@@ -169,7 +170,11 @@ export class CylinderTool {
     if (!this.state.draftModel) return;
 
     const hitEntity = this.viewer.scene.pick(movement.endPosition);
-    if (!Cesium.defined(hitEntity) || hitEntity.id !== this.state.guideEntity)
+    if (
+      !Cesium.defined(hitEntity) ||
+      (hitEntity.id !== this.state.guideEntity &&
+        hitEntity.id !== this.state.draftEntity)
+    )
       return;
 
     const hitPosition = this.viewer.scene.pickPosition(movement.endPosition);
@@ -180,7 +185,7 @@ export class CylinderTool {
     const groundCartographicPosition = this.state.draftModel.center;
 
     this.state.draftModel.height =
-      2 * (hitCartographicPosition.height - groundCartographicPosition.height);
+      hitCartographicPosition.height - groundCartographicPosition.height;
     const heightText = `${this.state.draftModel.height.toFixed(2)} m`;
 
     // Update label
@@ -201,7 +206,7 @@ export class CylinderTool {
     this.state.draftEntity = this.viewer.entities.add({
       position: Cesium.Cartographic.toCartesian(this.state.draftModel.center),
       cylinder: {
-        length: this.state.draftModel.height,
+        length: this.getCylinderLength(this.state.draftModel.height),
         topRadius: this.state.draftModel.radius,
         bottomRadius: this.state.draftModel.radius,
         material:
@@ -223,7 +228,7 @@ export class CylinderTool {
       this.state.guideEntity = this.viewer.entities.add({
         position: Cesium.Cartographic.toCartesian(this.state.draftModel.center),
         cylinder: {
-          length: MAX_HEIGHT,
+          length: this.getCylinderLength(MAX_HEIGHT),
           topRadius: this.state.draftModel.radius + GUIDE_ENTITY_OFFSET,
           bottomRadius: this.state.draftModel.radius + GUIDE_ENTITY_OFFSET,
           material:
@@ -239,7 +244,7 @@ export class CylinderTool {
       this.state.draftEntity = this.viewer.entities.add({
         position: Cesium.Cartographic.toCartesian(this.state.draftModel.center),
         cylinder: {
-          length: this.state.draftModel.height,
+          length: this.getCylinderLength(this.state.draftModel.height),
           topRadius: this.state.draftModel.radius,
           bottomRadius: this.state.draftModel.radius,
           material:
@@ -261,7 +266,7 @@ export class CylinderTool {
     model.entity = this.viewer.entities.add({
       position: Cesium.Cartographic.toCartesian(model.center),
       cylinder: {
-        length: model.height,
+        length: this.getCylinderLength(model.height),
         topRadius: model.radius,
         bottomRadius: model.radius,
         material: color.withAlpha(0.5),
@@ -410,6 +415,10 @@ export class CylinderTool {
       Cesium.CameraEventType.WHEEL,
       Cesium.CameraEventType.PINCH,
     ];
+  }
+
+  private getCylinderLength(height: number): number {
+    return SCALE * height;
   }
 
   destroy(): void {
