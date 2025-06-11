@@ -11,14 +11,13 @@ async def get_operational_intents_volume(operational_intents: List[OperationalIn
     volumes: List[AreaOfInterestSchema] = []
 
     for operational_intent in operational_intents:
-        uss = USSService(operational_intent.uss_base_url)
-
         try:
+            uss = USSService(operational_intent.uss_base_url)
             res = await uss.get_operational_intent(operational_intent.id)
+            volumes += res.operational_intent.details.volumes
         except Exception as _:
-            pass
+            continue
 
-        volumes += res.operational_intent.details.volumes
 
     return volumes
 

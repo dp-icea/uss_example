@@ -4,12 +4,14 @@ export enum PolygonVolumeState {
   DRAFT = "DRAFT",
   ACCEPTED = "ACCEPTED",
   ERROR = "ERROR",
+  REQUESTED = "REQUESTED",
 }
 
 export const PolygonVolumeStateColors = {
   [PolygonVolumeState.DRAFT]: Cesium.Color.YELLOW,
   [PolygonVolumeState.ACCEPTED]: Cesium.Color.GREEN,
   [PolygonVolumeState.ERROR]: Cesium.Color.RED,
+  [PolygonVolumeState.REQUESTED]: Cesium.Color.GREY,
 } as const;
 
 export interface PolygonVolumeModel {

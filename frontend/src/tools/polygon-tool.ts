@@ -68,6 +68,8 @@ export class PolygonTool {
   private handleLeftClick(
     event: Cesium.ScreenSpaceEventHandler.PositionedEvent,
   ): void {
+    this.handleSelectEntity(event);
+
     if (!this.state.isActive) return;
 
     // Start drawing the base of the polygon
@@ -78,6 +80,26 @@ export class PolygonTool {
     } else {
       this.finishPolygonCreation(event);
     }
+  }
+
+  private handleSelectEntity(
+    event: Cesium.ScreenSpaceEventHandler.PositionedEvent,
+  ): void {
+    const pickedObject = this.viewer.scene.pick(event.position);
+
+    console.log(pickedObject);
+
+    if (!Cesium.defined(pickedObject) || !pickedObject.id) {
+      return;
+    }
+
+    console.log("Hey");
+
+    this.state.addedRegions.forEach((model) => {
+      if (model.entity && model.entity.id === pickedObject.id) {
+        console.log(model);
+      }
+    });
   }
 
   private startBasePolygonCreation(
@@ -503,7 +525,7 @@ export class PolygonTool {
       base: vertices,
       height: maxHeight - minHeight,
       entity: polygonEntity,
-      state: PolygonVolumeState.ERROR,
+      state: PolygonVolumeState.REQUESTED,
     });
   }
 
