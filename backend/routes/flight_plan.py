@@ -5,6 +5,8 @@ from uuid import uuid4, UUID
 from http import HTTPStatus
 
 from controllers import operational_intent as operational_intent_controller
+from controllers import remote_constraint as remote_constraint_controller
+from controllers import remote_operational_intent as remote_operational_intent_controller
 from config.logger import PlanningAttemptLogger, OperatorInputLogger, log_route_handler
 from models.operational_intent import OperationalIntentModel
 from services.dss_service import DSSService
@@ -152,6 +154,43 @@ async def create_flight_plan_with_conflict(
         status=HTTPStatus.CREATED.value,
         message="Operational intent created successfully",
         data=operational_intent.model_dump(mode="json"),
+    )
+
+@router.post(
+    "/query_conflicts",
+    response_description="Query conflicts in an area",
+    response_model=Response,
+    status_code=HTTPStatus.OK.value,
+)
+@log_route_handler(OperatorInputLogger, "Query Conflicts")
+async def query_conflicts(
+    area_of_interest: AreaOfInterestSchema = Body(...),
+):
+    """
+    Query conflicts in an area
+    """
+
+    # Query constraints
+    dss = DSSService()
+    query_constraints = await dss.query_constraint_references(
+        area_of_interest=area_of_interest
+    )
+    constraint_volumes = await remote_constraint_controller.get_constraints_volume(query_constraints.constraint_references)
+
+    # Query operational intents
+    query_operations = await dss.query_operational_intent_references(
+        area_of_interest=area_of_interest,
+    )
+    conflicting_operations = query_operations.operational_intent_references
+    operational_intent_volumes = await remote_operational_intent_controller.get_operational_intents_volume(conflicting_operations)
+
+    return Response(
+        status=HTTPStatus.OK.value,
+        message="Conflicts queried successfully",
+        data={
+            "constraints": [volume.model_dump(mode="json") for volume in constraint_volumes],
+            "operational_intents": [volume.model_dump(mode="json") for volume in operational_intent_volumes],
+        },
     )
 
 @router.post(
