@@ -1,0 +1,858 @@
+{
+	"info": {
+		"_postman_id": "b85a847a-47d0-4f58-a66f-03eaba0dba0e",
+		"name": "BR-UTM",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "29575945"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "(A) Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Parse the response body to extract the access token",
+									"const responseBody = pm.response.json();",
+									"const accessToken = responseBody.access_token;",
+									"",
+									"// Store the access token in a Postman variable for later use",
+									"pm.environment.set(\"access_token\", accessToken);",
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{AUTH_URL}}?intended_audience=core-service&scope=utm.strategic_coordination&apikey={{AUTH_KEY}}",
+							"host": [
+								"{{AUTH_URL}}"
+							],
+							"query": [
+								{
+									"key": "intended_audience",
+									"value": "core-service"
+								},
+								{
+									"key": "scope",
+									"value": "utm.strategic_coordination"
+								},
+								{
+									"key": "apikey",
+									"value": "{{AUTH_KEY}}"
+								},
+								{
+									"key": "grant_type",
+									"value": "client_credentials",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "USS",
+			"item": [
+				{
+					"name": "Flight Plan",
+					"item": [
+						{
+							"name": "(FP) Add Flight Area",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"volume\": {\n        \"outline_circle\": {\n        \"center\": {\n            \"lng\": -118.456,\n            \"lat\": 34.123\n        },\n        \"radius\": {\n            \"value\": 300.183,\n            \"units\": \"M\"\n        }\n        },\n        \"altitude_lower\": {\n        \"value\": 100000,\n        \"reference\": \"W84\",\n        \"units\": \"M\"\n        },\n        \"altitude_upper\": {\n        \"value\": 100000,\n        \"reference\": \"W84\",\n        \"units\": \"M\"\n        }\n    },\n    \"time_start\": {\n        \"value\": \"2025-06-29T06:00:17Z\",\n        \"format\": \"RFC3339\"\n    },\n    \"time_end\": {\n        \"value\": \"2025-06-29T06:10:16Z\",\n        \"format\": \"RFC3339\"\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{USS1_URL}}/flight_plan/",
+									"host": [
+										"{{USS1_URL}}"
+									],
+									"path": [
+										"flight_plan",
+										""
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "(FP) Add Flight Area w/ Constraints",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"volume\": {\n        \"outline_circle\": {\n          \"center\": {\n            \"lng\": -118.456,\n            \"lat\": 34.123\n          },\n          \"radius\": {\n            \"value\": 300.183,\n            \"units\": \"M\"\n          }\n        },\n        \"altitude_lower\": {\n          \"value\": 100000,\n          \"reference\": \"W84\",\n          \"units\": \"M\"\n        },\n        \"altitude_upper\": {\n          \"value\": 100000,\n          \"reference\": \"W84\",\n          \"units\": \"M\"\n        }\n      },\n      \"time_start\": {\n        \"value\": \"2025-06-29T05:26:17Z\",\n        \"format\": \"RFC3339\"\n      },\n      \"time_end\": {\n        \"value\": \"2025-06-29T05:27:16Z\",\n        \"format\": \"RFC3339\"\n      }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{USS1_URL}}/flight_plan/with_conflict",
+									"host": [
+										"{{USS1_URL}}"
+									],
+									"path": [
+										"flight_plan",
+										"with_conflict"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "(FP) Get by UUID",
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"volume\": {\n        \"outline_circle\": {\n          \"center\": {\n            \"lng\": -118.456,\n            \"lat\": 34.123\n          },\n          \"radius\": {\n            \"value\": 300.183,\n            \"units\": \"M\"\n          }\n        },\n        \"altitude_lower\": {\n          \"value\": 100000,\n          \"reference\": \"W84\",\n          \"units\": \"M\"\n        },\n        \"altitude_upper\": {\n          \"value\": 100000,\n          \"reference\": \"W84\",\n          \"units\": \"M\"\n        }\n      },\n      \"time_start\": {\n        \"value\": \"2025-05-29T04:17:17Z\",\n        \"format\": \"RFC3339\"\n      },\n      \"time_end\": {\n        \"value\": \"2025-05-29T04:18:16Z\",\n        \"format\": \"RFC3339\"\n      }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{USS1_URL}}/flight_plan/{{uuid}}",
+									"host": [
+										"{{USS1_URL}}"
+									],
+									"path": [
+										"flight_plan",
+										"{{uuid}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "(FP) Remove by UUID",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{USS1_URL}}/flight_plan/{{uuid}}",
+									"host": [
+										"{{USS1_URL}}"
+									],
+									"path": [
+										"flight_plan",
+										"{{uuid}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "(FP) Activate Flight",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{USS1_URL}}/flight_plan/{{uuid}}",
+									"host": [
+										"{{USS1_URL}}"
+									],
+									"path": [
+										"flight_plan",
+										"{{uuid}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "(FP) Update",
+							"request": {
+								"method": "PATCH",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"reference\": {\n        \"id\": \"8598eb65-0fec-4ead-b44d-fe06d14087da\",\n        \"flight_type\": \"\",\n        \"manager\": \"icea\",\n        \"uss_availability\": \"Unknown\",\n        \"version\": 2,\n        \"state\": \"Activated\",\n        \"ovn\": \"EQKSK5LELUoJ5rzYQ5kA68Eua.ixfACVDG-1ZhxKUhQ_\",\n        \"time_start\": {\n            \"value\": \"2025-06-29T05:26:17Z\",\n            \"format\": \"RFC3339\"\n        },\n        \"time_end\": {\n            \"value\": \"2025-06-29T05:27:16Z\",\n            \"format\": \"RFC3339\"\n        },\n        \"uss_base_url\": \"http://localhost:8000/\",\n        \"subscription_id\": \"df4b8a7f-3579-4e9a-bdc7-ae703425ec43\"\n    },\n    \"details\": {\n        \"volumes\": [\n            {\n                \"volume\": {\n                    \"outline_circle\": {\n                        \"center\": {\n                            \"lng\": -118.456,\n                            \"lat\": 34.123\n                        },\n                        \"radius\": {\n                            \"value\": 300.183,\n                            \"units\": \"M\"\n                        }\n                    },\n                    \"altitude_lower\": {\n                        \"value\": 100000,\n                        \"reference\": \"W84\",\n                        \"units\": \"M\"\n                    },\n                    \"altitude_upper\": {\n                        \"value\": 100000,\n                        \"reference\": \"W84\",\n                        \"units\": \"M\"\n                    }\n                },\n                \"time_start\": {\n                    \"value\": \"2025-06-29T05:27:17Z\",\n                    \"format\": \"RFC3339\"\n                },\n                \"time_end\": {\n                    \"value\": \"2025-06-29T05:28:16Z\",\n                    \"format\": \"RFC3339\"\n                }\n            }\n        ],\n        \"off_nominal_volumes\": [],\n        \"priority\": 0\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{USS1_URL}}/flight_plan/",
+									"host": [
+										"{{USS1_URL}}"
+									],
+									"path": [
+										"flight_plan",
+										""
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "(FP) Get Near Conflicts",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"volume\": {\n        \"outline_circle\": {\n        \"center\": {\n            \"lng\": -118.456,\n            \"lat\": 34.123\n        },\n        \"radius\": {\n            \"value\": 300.183,\n            \"units\": \"M\"\n        }\n        },\n        \"altitude_lower\": {\n            \"value\": 100000,\n            \"reference\": \"W84\",\n            \"units\": \"M\"\n        },\n        \"altitude_upper\": {\n            \"value\": 100000,\n            \"reference\": \"W84\",\n            \"units\": \"M\"\n        }\n    },\n    \"time_start\": {\n        \"value\": \"2025-07-29T07:01:17Z\",\n        \"format\": \"RFC3339\"\n    },\n    \"time_end\": {\n        \"value\": \"2025-07-29T07:02:16Z\",\n        \"format\": \"RFC3339\"\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{USS1_URL}}/flight_plan/query_conflicts",
+									"host": [
+										"{{USS1_URL}}"
+									],
+									"path": [
+										"flight_plan",
+										"query_conflicts"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Constraint Management",
+					"item": [
+						{
+							"name": "(C) Create",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "[\n    {\n        \"volume\": {\n            \"outline_circle\": {\n            \"center\": {\n                \"lng\": -118.456,\n                \"lat\": 34.123\n            },\n            \"radius\": {\n                \"value\": 300.183,\n                \"units\": \"M\"\n            }\n            },\n            \"altitude_lower\": {\n            \"value\": 100000,\n            \"reference\": \"W84\",\n            \"units\": \"M\"\n            },\n            \"altitude_upper\": {\n            \"value\": 100000,\n            \"reference\": \"W84\",\n            \"units\": \"M\"\n            }\n        },\n        \"time_start\": {\n            \"value\": \"2025-06-29T06:00:17Z\",\n            \"format\": \"RFC3339\"\n        },\n        \"time_end\": {\n            \"value\": \"2025-06-29T06:59:16Z\",\n            \"format\": \"RFC3339\"\n        }\n    }\n]",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{USS1_URL}}/constraint_management/",
+									"host": [
+										"{{USS1_URL}}"
+									],
+									"path": [
+										"constraint_management",
+										""
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "(C) Delete by UUID",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{USS1_URL}}/constraint_management/{{constraint_id}}",
+									"host": [
+										"{{USS1_URL}}"
+									],
+									"path": [
+										"constraint_management",
+										"{{constraint_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "(C) Get by UUID",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{USS1_URL}}/constraint_management/{{constraint_id}}",
+									"host": [
+										"{{USS1_URL}}"
+									],
+									"path": [
+										"constraint_management",
+										"{{constraint_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "(C) Get by UUID Copy",
+							"request": {
+								"method": "PATCH",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"reference\": {\n        \"id\": \"a5bae013-e270-4d9c-8af2-68f3c41bf7aa\",\n        \"manager\": \"icea\",\n        \"time_end\": {\n            \"value\": \"2025-05-29T04:20:16Z\",\n            \"format\": \"RFC3339\"\n        },\n        \"time_start\": {\n            \"value\": \"2025-05-29T04:10:17Z\",\n            \"format\": \"RFC3339\"\n        },\n        \"uss_availability\": \"Unknown\",\n        \"uss_base_url\": \"http://localhost:8000/\",\n        \"version\": 1,\n        \"ovn\": \"8rtPZXEAGCM8l0XvpOmQJdOBv0F-s2LLwrKV4yAMu2Q_\"\n    },\n    \"details\": {\n        \"volumes\": [\n            {\n                \"volume\": {\n                    \"outline_circle\": {\n                        \"center\": {\n                            \"lng\": -118.456,\n                            \"lat\": 34.123\n                        },\n                        \"radius\": {\n                            \"value\": 300.183,\n                            \"units\": \"M\"\n                        }\n                    },\n                    \"altitude_lower\": {\n                        \"value\": 100000,\n                        \"reference\": \"W84\",\n                        \"units\": \"M\"\n                    },\n                    \"altitude_upper\": {\n                        \"value\": 100000,\n                        \"reference\": \"W84\",\n                        \"units\": \"M\"\n                    }\n                },\n                \"time_start\": {\n                    \"value\": \"2025-05-29T04:20:17Z\",\n                    \"format\": \"RFC3339\"\n                },\n                \"time_end\": {\n                    \"value\": \"2025-05-29T04:30:16Z\",\n                    \"format\": \"RFC3339\"\n                }\n            }\n        ],\n        \"type\": \"uss.icea.non_utm_aircraft_operations\",\n        \"geozone\": null\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{USS1_URL}}/constraint_management/",
+									"host": [
+										"{{USS1_URL}}"
+									],
+									"path": [
+										"constraint_management",
+										""
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Subscription Management",
+					"item": [
+						{
+							"name": "(S) Add Subcription",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"volume\": {\n        \"outline_circle\": {\n          \"center\": {\n            \"lng\": -118.456,\n            \"lat\": 34.123\n          },\n          \"radius\": {\n            \"value\": 300.183,\n            \"units\": \"M\"\n          }\n        },\n        \"altitude_lower\": {\n          \"value\": 100000,\n          \"reference\": \"W84\",\n          \"units\": \"M\"\n        },\n        \"altitude_upper\": {\n          \"value\": 100000,\n          \"reference\": \"W84\",\n          \"units\": \"M\"\n        }\n      },\n      \"time_start\": {\n        \"value\": \"2025-06-29T04:01:17Z\",\n        \"format\": \"RFC3339\"\n      },\n      \"time_end\": {\n        \"value\": \"2025-06-29T05:02:16Z\",\n        \"format\": \"RFC3339\"\n      }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{USS1_URL}}/subscription_management/",
+									"host": [
+										"{{USS1_URL}}"
+									],
+									"path": [
+										"subscription_management",
+										""
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "(S) Get by UUID",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{USS1_URL}}/subscription_management/{{subcription_id}}",
+									"host": [
+										"{{USS1_URL}}"
+									],
+									"path": [
+										"subscription_management",
+										"{{subcription_id}}"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Operational Intent",
+					"item": [
+						{
+							"name": "(OI) Query by UUID",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{USS1_URL}}/operational_intents/{{uuid}}",
+									"host": [
+										"{{USS1_URL}}"
+									],
+									"path": [
+										"operational_intents",
+										"{{uuid}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "(OI) Telemetry by UUID",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{USS1_URL}}/operational_intents/{{uuid}}/telemetry",
+									"host": [
+										"{{USS1_URL}}"
+									],
+									"path": [
+										"operational_intents",
+										"{{uuid}}",
+										"telemetry"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "(OI) Telemetry by UUID Copy",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"operational_intent_id\": \"6f1ad255-7148-4ff0-8489-67cdd0049177\",\n    \"subscriptions\": [],\n    \"operational_intent\": {\n        \"reference\": {\n            \"id\": \"6f1ad255-7148-4ff0-8489-67cdd0049177\",\n            \"flight_type\": \"\",\n            \"manager\": \"icea\",\n            \"uss_availability\": \"Unknown\",\n            \"version\": 1,\n            \"state\": \"Accepted\",\n            \"ovn\": \"2aRwEyPa0UWf4g25KLMWgWWIZAWfSNM73mN-Ije0uP4_\",\n            \"time_start\": {\n                \"value\": \"2025-05-29T04:17:17Z\",\n                \"format\": \"RFC3339\"\n            },\n            \"time_end\": {\n                \"value\": \"2025-05-29T04:18:16Z\",\n                \"format\": \"RFC3339\"\n            },\n            \"uss_base_url\": \"http://localhost:8000/\",\n            \"subscription_id\": \"1ce64522-ae3a-4e7f-83bb-d2b91b4439fe\"\n        },\n        \"details\": {\n            \"volumes\": [\n                {\n                    \"volume\": {\n                        \"outline_circle\": {\n                            \"center\": {\n                                \"lng\": -118.456,\n                                \"lat\": 34.123\n                            },\n                            \"radius\": {\n                                \"value\": 300.183,\n                                \"units\": \"M\"\n                            }\n                        },\n                        \"altitude_lower\": {\n                            \"value\": 100000,\n                            \"reference\": \"W84\",\n                            \"units\": \"M\"\n                        },\n                        \"altitude_upper\": {\n                            \"value\": 100000,\n                            \"reference\": \"W84\",\n                            \"units\": \"M\"\n                        }\n                    },\n                    \"time_start\": {\n                        \"value\": \"2025-05-29T04:16:17Z\",\n                        \"format\": \"RFC3339\"\n                    },\n                    \"time_end\": {\n                        \"value\": \"2025-05-29T04:17:16Z\",\n                        \"format\": \"RFC3339\"\n                    }\n                }\n            ],\n            \"off_nominal_volumes\": [],\n            \"priority\": 0\n        }\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{USS1_URL}}/operational_intents/",
+									"host": [
+										"{{USS1_URL}}"
+									],
+									"path": [
+										"operational_intents",
+										""
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Constraints",
+					"item": [
+						{
+							"name": "(C) Get By UUID",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{USS1_URL}}/constraints/{{uuid}}",
+									"host": [
+										"{{USS1_URL}}"
+									],
+									"path": [
+										"constraints",
+										"{{uuid}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "(C) Change Constraint",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"constraint_id\": \"92894794-96cb-4f93-866b-a1a45a80e6dd\",\n    \"subscriptions\": [],\n    \"constraint\": {\n        \"reference\": {\n            \"id\": \"92894794-96cb-4f93-866b-a1a45a80e6dd\",\n            \"manager\": \"icea\",\n            \"time_end\": {\n                \"value\": \"2025-05-29T04:12:16Z\",\n                \"format\": \"RFC3339\"\n            },\n            \"time_start\": {\n                \"value\": \"2025-05-29T04:11:17Z\",\n                \"format\": \"RFC3339\"\n            },\n            \"uss_availability\": \"Unknown\",\n            \"uss_base_url\": \"http://localhost:8000/\",\n            \"version\": 1,\n            \"ovn\": \"pbwVc.c1BiJ2-D2rT11HHz92UVKov5-Gk07v9ANJcg4_\"\n        },\n        \"details\": {\n            \"volumes\": [\n                {\n                    \"volume\": {\n                        \"outline_circle\": {\n                            \"center\": {\n                                \"lng\": -118.456,\n                                \"lat\": 34.123\n                            },\n                            \"radius\": {\n                                \"value\": 300.183,\n                                \"units\": \"M\"\n                            }\n                        },\n                        \"altitude_lower\": {\n                            \"value\": 100000,\n                            \"reference\": \"W84\",\n                            \"units\": \"M\"\n                        },\n                        \"altitude_upper\": {\n                            \"value\": 100000,\n                            \"reference\": \"W84\",\n                            \"units\": \"M\"\n                        }\n                    },\n                    \"time_start\": {\n                        \"value\": \"2025-05-29T04:12:17Z\",\n                        \"format\": \"RFC3339\"\n                    },\n                    \"time_end\": {\n                        \"value\": \"2025-05-29T04:13:16Z\",\n                        \"format\": \"RFC3339\"\n                    }\n                }\n            ],\n            \"type\": \"uss.icea.non_utm_aircraft_operations\",\n            \"geozone\": null\n        }\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{USS1_URL}}/constraints/",
+									"host": [
+										"{{USS1_URL}}"
+									],
+									"path": [
+										"constraints",
+										""
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Log Sets",
+					"item": [
+						{
+							"name": "Get Logs",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{USS1_URL}}/log_sets",
+									"host": [
+										"{{USS1_URL}}"
+									],
+									"path": [
+										"log_sets"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "DSS",
+			"item": [
+				{
+					"name": "Constraint References",
+					"item": [
+						{
+							"name": "(CR) Query in Area",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"area_of_interest\": {\n        \"volume\": {\n            \"outline_circle\": {\n                \"center\": {\n                    \"lng\": -118.456,\n                    \"lat\": 34.123\n                },\n                \"radius\": {\n                    \"value\": 300.183,\n                    \"units\": \"M\"\n                }\n            },\n            \"altitude_lower\": {\n            \"value\": 100000,\n            \"reference\": \"W84\",\n            \"units\": \"M\"\n            },\n            \"altitude_upper\": {\n            \"value\": 100000,\n            \"reference\": \"W84\",\n            \"units\": \"M\"\n            }\n        },\n        \"time_start\": {\n            \"value\": \"1985-04-12T23:20:50.52Z\",\n            \"format\": \"RFC3339\"\n        },\n        \"time_end\": {\n            \"value\": \"1985-04-12T23:20:50.52Z\",\n            \"format\": \"RFC3339\"\n        }\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{DSS_URL}}/constraint_references/query",
+									"host": [
+										"{{DSS_URL}}"
+									],
+									"path": [
+										"constraint_references",
+										"query"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Operational Intent References",
+					"item": [
+						{
+							"name": "(OIR) Get from UUID",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{DSS_URL}}/operational_intent_references/{{:uuid}}",
+									"host": [
+										"{{DSS_URL}}"
+									],
+									"path": [
+										"operational_intent_references",
+										"{{:uuid}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "(OIR) Add New",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"extents\": [\n    {\n        \"volume\": {\n            \"outline_circle\": {\n            \"center\": {\n                \"lng\": -118.456,\n                \"lat\": 34.123\n            },\n            \"radius\": {\n                \"value\": 300.183,\n                \"units\": \"M\"\n            }\n            },\n            \"altitude_lower\": {\n            \"value\": 100000,\n            \"reference\": \"W84\",\n            \"units\": \"M\"\n            },\n            \"altitude_upper\": {\n            \"value\": 100000,\n            \"reference\": \"W84\",\n            \"units\": \"M\"\n            }\n        },\n        \"time_start\": {\n            \"value\": \"2025-05-29T05:02:17Z\",\n            \"format\": \"RFC3339\"\n        },\n        \"time_end\": {\n            \"value\": \"2025-05-29T05:03:16Z\",\n            \"format\": \"RFC3339\"\n        }\n    }\n  ],\n  \"key\": [],\n  \"state\": \"Accepted\",\n  \"uss_base_url\": \"https://uss.example.com/utm\",\n  \"subscription_id\": \"795d5d49-b9a6-4022-97ab-7e77d1f6e4d1\",\n//   \"new_subscription\": {\n//     \"uss_base_url\": \"string\",\n//     \"notify_for_constraints\": true\n//   },\n  \"flight_type\": \"VLOS\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{DSS_URL}}/operational_intent_references/{{uuid}}",
+									"host": [
+										"{{DSS_URL}}"
+									],
+									"path": [
+										"operational_intent_references",
+										"{{uuid}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "(OIR) Query in Area",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"area_of_interest\": {\n        \"volume\": {\n            \"outline_circle\": {\n            \"center\": {\n                \"lng\": -118.456,\n                \"lat\": 34.123\n            },\n            \"radius\": {\n                \"value\": 300.183,\n                \"units\": \"M\"\n            }\n            },\n            \"altitude_lower\": {\n            \"value\": 100000,\n            \"reference\": \"W84\",\n            \"units\": \"M\"\n            },\n            \"altitude_upper\": {\n            \"value\": 100000,\n            \"reference\": \"W84\",\n            \"units\": \"M\"\n            }\n        },\n        \"time_start\": {\n            \"value\": \"2025-05-29T03:41:50.53Z\",\n            \"format\": \"RFC3339\"\n        },\n        \"time_end\": {\n            \"value\": \"2025-05-29T03:42:50.52Z\",\n            \"format\": \"RFC3339\"\n        }\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{DSS_URL}}/operational_intent_references",
+									"host": [
+										"{{DSS_URL}}"
+									],
+									"path": [
+										"operational_intent_references"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Subscription",
+					"item": [
+						{
+							"name": "(S) Query by Area",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"area_of_interest\": {\n        \"volume\": {\n            \"outline_circle\": {\n            \"center\": {\n                \"lng\": -118.456,\n                \"lat\": 34.123\n            },\n            \"radius\": {\n                \"value\": 300.183,\n                \"units\": \"M\"\n            }\n            },\n            \"altitude_lower\": {\n            \"value\": 100000,\n            \"reference\": \"W84\",\n            \"units\": \"M\"\n            },\n            \"altitude_upper\": {\n            \"value\": 100000,\n            \"reference\": \"W84\",\n            \"units\": \"M\"\n            }\n        },\n        \"time_start\": {\n            \"value\": \"2025-05-29T04:21:17Z\",\n            \"format\": \"RFC3339\"\n        },\n        \"time_end\": {\n            \"value\": \"2025-05-29T04:22:16Z\",\n            \"format\": \"RFC3339\"\n        }\n    }\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{DSS_URL}}/subscriptions/query",
+									"host": [
+										"{{DSS_URL}}"
+									],
+									"path": [
+										"subscriptions",
+										"query"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "(S) Get by UUID",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{DSS_URL}}/subscriptions/{{subcription_id}}",
+									"host": [
+										"{{DSS_URL}}"
+									],
+									"path": [
+										"subscriptions",
+										"{{subcription_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "(S) Add subcription",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{access_token}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"extents\": {\n        \"volume\": {\n            \"outline_circle\": {\n            \"center\": {\n                \"lng\": -118.456,\n                \"lat\": 34.123\n            },\n            \"radius\": {\n                \"value\": 300.183,\n                \"units\": \"M\"\n            }\n            },\n            \"altitude_lower\": {\n            \"value\": 100000,\n            \"reference\": \"W84\",\n            \"units\": \"M\"\n            },\n            \"altitude_upper\": {\n            \"value\": 100000,\n            \"reference\": \"W84\",\n            \"units\": \"M\"\n            }\n        },\n        \"time_start\": {\n            \"value\": \"2025-05-29T05:00:17Z\",\n            \"format\": \"RFC3339\"\n        },\n        \"time_end\": {\n            \"value\": \"2025-05-29T05:10:16Z\",\n            \"format\": \"RFC3339\"\n        }\n    },\n    \"uss_base_url\": \"http://localhost:8000/\",\n    \"notify_for_operational_intents\": true,\n    \"notify_for_constraints\": true\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{DSS_URL}}/subscriptions/{{new_uuid}}",
+									"host": [
+										"{{DSS_URL}}"
+									],
+									"path": [
+										"subscriptions",
+										"{{new_uuid}}"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "uuid",
+			"value": "2f6caba8-711b-4ef3-98cc-d68b5f62f217",
+			"type": "default"
+		},
+		{
+			"key": "new_uuid",
+			"value": "9a9305a2-b84d-4da1-8292-80b2c5d66924",
+			"type": "default"
+		},
+		{
+			"key": "subcription_id",
+			"value": "9a9305a2-b84d-4da1-8292-80b2c5d66924",
+			"type": "default"
+		},
+		{
+			"key": "constraint_id",
+			"value": "f1060c24-140e-4ee7-a60e-fc533067fff6",
+			"type": "default"
+		}
+	]
+}

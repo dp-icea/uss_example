@@ -2,22 +2,23 @@ version: "3.8"
 
 services:
   api:
-    build: ./backend
+    image: your-username/your-app-backend:latest
     ports:
       - "8001:8000"
     environment:
       - ENV=prod
+      - MONGODB_URL=mongodb://mongodb:27017
     depends_on:
       - mongodb
     networks:
       - app-network
     deploy:
-      replicas: 2
+      replicas: 1
       restart_policy:
         condition: on-failure
 
   frontend:
-    build: ./frontend
+    image: your-username/your-app-frontend:latest
     ports:
       - "80:80"
     depends_on:
@@ -31,8 +32,8 @@ services:
 
   mongodb:
     image: bitnami/mongodb:latest
-    ports:
-      - "27018:27017"
+    environment:
+      - MONGODB_ROOT_PASSWORD=your-secure-password
     volumes:
       - mongodb_data:/bitnami/mongodb
     networks:
