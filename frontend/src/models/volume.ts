@@ -1,15 +1,18 @@
 import * as Cesium from "cesium";
+import { PolygonVolumeSchema } from "./polygon";
 
 export enum CylinderVolumeState {
   DRAFT = "DRAFT",
   ACCEPTED = "ACCEPTED",
   ERROR = "ERROR",
+  REQUESTED = "REQUESTED",
 }
 
 export const CylinderVolumeStateColors = {
   [CylinderVolumeState.DRAFT]: Cesium.Color.YELLOW,
   [CylinderVolumeState.ACCEPTED]: Cesium.Color.GREEN,
   [CylinderVolumeState.ERROR]: Cesium.Color.RED,
+  [CylinderVolumeState.REQUESTED]: Cesium.Color.GREY,
 } as const;
 
 export interface CylinderVolumeModel {
@@ -18,6 +21,7 @@ export interface CylinderVolumeModel {
   height: number;
   entity?: Cesium.Entity;
   state: CylinderVolumeState;
+  confirmedVolume?: CylinderVolumeSchema; // Optional. Included only in ACCEPTED or REQUESTED states
 }
 
 export interface CylinderVolumeSchema {
@@ -86,7 +90,7 @@ export interface CylinderVolumeRequestPayload {
   };
 }
 
-export interface CylinderVolumeReference {
+export interface FlightRequestReference {
   id: string;
   flight_type: string;
   manager: string;
@@ -106,13 +110,13 @@ export interface CylinderVolumeReference {
   subscription_id?: string; // Optional, may not be present in all references
 }
 
-export interface CylinderVolumeResponse {
+export interface FlightRequestResponse {
   status: number;
   message: string;
   data: {
-    reference: CylinderVolumeReference;
+    reference: FlightRequestReference;
     details: {
-      volumes: CylinderVolumeRequestPayload[];
+      volumes: Array<CylinderVolumeSchema | PolygonVolumeSchema>; // List of volumes, can include both cylinder and polygon volumes
       off_nominal_volumes?: any[]; // Optional, may not be present in all responses
       priority?: number; // Optional, may not be present in all responses
     };
@@ -124,7 +128,7 @@ export interface CylinderVolumeConflictResponse {
     message: string;
     data: {
       constraints: any[]; // List of constraints, if any
-      operational_intents: CylinderVolumeReference[]; // List of conflicting operational intents
+      operational_intents: FlightRequestReference[]; // List of conflicting operational intents
     };
   };
 }

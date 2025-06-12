@@ -19,6 +19,7 @@ export interface PolygonVolumeModel {
   height: number;
   entity?: Cesium.Entity;
   state: PolygonVolumeState;
+  confirmedVolume?: PolygonVolumeSchema; // Optional. Included only in ACCEPTED or REQUESTED states
 }
 
 export interface PolygonVolumeSchema {

@@ -35,6 +35,7 @@ export class CylinderTool {
     this.state = {
       addedRegions: [],
       isActive: false,
+      isSelecting: false,
     };
 
     this.setupEventHandlers();
@@ -71,6 +72,8 @@ export class CylinderTool {
   private handleLeftClick(
     event: Cesium.ScreenSpaceEventHandler.PositionedEvent,
   ): void {
+    this.handleSelectEntity(event);
+
     if (!this.state.isActive) return;
 
     if (!Cesium.defined(this.state.draftModel)) {
@@ -277,6 +280,28 @@ export class CylinderTool {
     });
   }
 
+  private createEntityDescription(model: CylinderVolumeModel): Cesium.Property {
+    let description =
+      `<table class="cesium-infoBox-defaultTable"><tbody>` +
+      `<tr><th>Longitude</th><td>${model.center.longitude}</td></tr>` +
+      `<tr><th>Latitude</th><td>${model.center.latitude}</td></tr>` +
+      `<tr><th>Radius</th><td>${model.radius}</td></tr>` +
+      `<tr><th>Height</th><td>${model.height}</td></tr>` +
+      `<tr><th>State</th><td>${model.state}</td></tr>`;
+
+    if (model.confirmedVolume) {
+      description +=
+        `<tr><th>Altitude Lower</th><td>${model.confirmedVolume.volume.altitude_lower.value}</td></tr>` +
+        `<tr><th>Altitude Upper</th><td>${model.confirmedVolume.volume.altitude_upper.value}</td></tr>` +
+        `<tr><th>Time Start</th><td>${model.confirmedVolume.time_start.value}</td></tr>` +
+        `<tr><th>Time End</th><td>${model.confirmedVolume.time_end.value}</td></tr>`;
+    }
+
+    description += `</tbody></table>`;
+
+    return description as unknown as Cesium.Property;
+  }
+
   private showErrorMessage(model: CylinderVolumeModel, message: string): void {
     // Create a temporary error label
     const errorLabel = this.annotations.add({
@@ -348,12 +373,14 @@ export class CylinderTool {
     };
 
     try {
-      await this.apiService.submitFlightPlan(payload);
+      const confirmedResponse = await this.apiService.submitFlightPlan(payload);
       this.updateCylinderColor(
         model,
         CylinderVolumeStateColors[CylinderVolumeState.ACCEPTED],
       );
       model.state = CylinderVolumeState.ACCEPTED;
+      model.confirmedVolume = confirmedResponse.data.details
+        .volumes[0] as CylinderVolumeSchema;
     } catch (error: any) {
       // Error occurred
       this.updateCylinderColor(
@@ -385,7 +412,22 @@ export class CylinderTool {
     }
   }
 
-  public drawConflictRegion(region: CylinderVolumeSchema): void {
+  cleanRequestedRegions(): void {
+    // Remove all regions that are in REQUESTED state
+    this.state.addedRegions.forEach((model) => {
+      if (model.state === CylinderVolumeState.REQUESTED) {
+        if (model.entity) {
+          this.viewer.entities.remove(model.entity);
+        }
+      }
+    });
+
+    this.state.addedRegions = this.state.addedRegions.filter(
+      (model) => model.state !== CylinderVolumeState.REQUESTED,
+    );
+  }
+
+  drawConflictRegion(region: CylinderVolumeSchema): void {
     const center = new Cesium.Cartographic(
       region.volume.outline_circle.center.lng,
       region.volume.outline_circle.center.lat,
@@ -397,7 +439,15 @@ export class CylinderTool {
     const height =
       region.volume.altitude_upper.value - region.volume.altitude_lower.value;
 
-    this.viewer.entities.add({
+    const model: CylinderVolumeModel = {
+      center: center,
+      radius: radius,
+      height: height,
+      state: CylinderVolumeState.REQUESTED,
+      confirmedVolume: region,
+    };
+
+    model.entity = this.viewer.entities.add({
       position: Cesium.Cartographic.toCartesian(center),
       cylinder: {
         length: this.getCylinderLength(height),
@@ -408,6 +458,37 @@ export class CylinderTool {
         outlineColor: Cesium.Color.RED,
       },
     });
+
+    this.state.addedRegions.push(model);
+  }
+
+  private handleSelectEntity(
+    event: Cesium.ScreenSpaceEventHandler.PositionedEvent,
+  ): void {
+    if (!this.state.isSelecting) return;
+
+    const pickedObject = this.viewer.scene.pick(event.position);
+
+    if (!Cesium.defined(pickedObject) || !pickedObject.id) {
+      return;
+    }
+
+    const pickedEntity = pickedObject.id as Cesium.Entity;
+
+    this.state.addedRegions.forEach((model) => {
+      if (model.entity && model.entity.id === pickedEntity.id) {
+        model.entity.description = this.createEntityDescription(model);
+        console.log("Selected model:", model);
+      }
+    });
+  }
+
+  activateSelecting(): void {
+    this.state.isSelecting = true;
+  }
+
+  deactivateSelecting(): void {
+    this.state.isSelecting = false;
   }
 
   activate(): void {

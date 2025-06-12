@@ -1,7 +1,7 @@
 import axios from "axios";
 import {
   CylinderVolumeRequestPayload,
-  CylinderVolumeResponse,
+  FlightRequestResponse,
   CylinderVolumeSchema,
 } from "../models/volume";
 import { PolygonVolumeSchema } from "../models/polygon";
@@ -25,7 +25,7 @@ export class USSService {
 
   async submitFlightPlan(
     payload: CylinderVolumeRequestPayload | PolygonVolumeRequestPayload,
-  ): Promise<CylinderVolumeResponse> {
+  ): Promise<FlightRequestResponse> {
     try {
       const response = await axios.put(
         `${this.baseUrl}/uss/v1/flight_plan/with_conflict`,
@@ -41,7 +41,7 @@ export class USSService {
         throw new Error(`Expected status 201, but got ${response.status}`);
       }
 
-      return response.data as CylinderVolumeResponse;
+      return response.data as FlightRequestResponse;
     } catch (error: any) {
       // Re-throw the error with response data for proper handling
       if (error.response) {

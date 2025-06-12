@@ -13,7 +13,7 @@ export class Map {
   private cylinderTool: CylinderTool;
   private polygonTool: PolygonTool;
   private ussService: USSService;
-  private activeTool: "cylinder" | "polygon" = "cylinder";
+  private activeTool: "select" | "cylinder" | "polygon" = "select";
 
   constructor(container: string) {
     // Set Ion access token if available
@@ -25,7 +25,7 @@ export class Map {
     this.viewer = new Cesium.Viewer(container, {
       terrain: Cesium.Terrain.fromWorldTerrain(),
       selectionIndicator: false,
-      infoBox: false,
+      infoBox: true,
       animation: false,
       timeline: false,
       homeButton: false,
@@ -75,29 +75,35 @@ export class Map {
       radio.addEventListener("change", (event) => {
         const target = event.target as HTMLInputElement;
         if (target.checked) {
-          this.switchTool(target.value as "cylinder" | "polygon");
+          this.switchTool(target.value as "select" | "cylinder" | "polygon");
         }
       });
     });
 
     // Initialize with cylinder tool active
-    this.switchTool("cylinder");
+    this.switchTool("select");
   }
 
-  private switchTool(tool: "cylinder" | "polygon"): void {
+  private switchTool(tool: "select" | "cylinder" | "polygon"): void {
     // Deactivate current tool
     if (this.activeTool === "cylinder") {
       this.cylinderTool.deactivate?.();
-    } else {
+    } else if (this.activeTool === "polygon") {
       this.polygonTool.deactivate();
+    } else if (this.activeTool === "select") {
+      this.polygonTool.deactivateSelecting();
+      this.cylinderTool.deactivateSelecting();
     }
 
     // Activate new tool
     this.activeTool = tool;
     if (tool === "cylinder") {
       this.cylinderTool.activate?.();
-    } else {
+    } else if (tool === "polygon") {
       this.polygonTool.activate();
+    } else if (tool === "select") {
+      this.polygonTool.activateSelecting();
+      this.cylinderTool.activateSelecting();
     }
   }
 
@@ -134,31 +140,24 @@ export class Map {
   }
 
   private setupConflictQuery(): void {
-    const queryButton = document.getElementById(
-      "query-conflicts-btn",
-    ) as HTMLButtonElement;
+    const startTimeInput = document.getElementById(
+      "startTime",
+    ) as HTMLInputElement;
+    const endTimeInput = document.getElementById("endTime") as HTMLInputElement;
 
-    console.log("Setting up conflict query button");
+    console.log("Setting up conflict query on date change");
 
-    if (queryButton) {
-      console.log("Adding event listener");
-      queryButton.addEventListener("click", async () => {
-        console.log("Query button clicked");
+    if (startTimeInput && endTimeInput) {
+      const handleDateChange = async () => {
+        const startTime = startTimeInput.value;
+        const endTime = endTimeInput.value;
 
-        const startTimeInput = document.getElementById(
-          "startTime",
-        ) as HTMLInputElement;
-        const endTimeInput = document.getElementById(
-          "endTime",
-        ) as HTMLInputElement;
-
-        if (startTimeInput && endTimeInput) {
-          const startTime = startTimeInput.value;
-          const endTime = endTimeInput.value;
-
-          // Validate that end time is after start time
+        // Only query if both dates are filled and valid
+        if (startTime && endTime) {
           if (new Date(startTime) >= new Date(endTime)) {
-            alert("End time must be after start time");
+            console.log(
+              "Invalid date range - end time must be after start time",
+            );
             return;
           }
 
@@ -168,7 +167,13 @@ export class Map {
             console.error("Error querying conflicts:", error);
           }
         }
-      });
+      };
+
+      // Add event listeners to both date inputs
+      startTimeInput.addEventListener("change", handleDateChange);
+      endTimeInput.addEventListener("change", handleDateChange);
+
+      console.log("Date change listeners added");
     }
   }
 
@@ -272,7 +277,8 @@ export class Map {
 
         const conflicts = await this.ussService.queryConflicts(payload);
 
-        // Iterate over conflicts, when CylinderVolumeSchema is returned, ask to display it in the CYlinderTool
+        this.cylinderTool.cleanRequestedRegions();
+        this.polygonTool.cleanRequestedRegions();
 
         conflicts.data.constraints.forEach((constraint) => {
           // How to verify the type CylinderVolumeSchema or PolygonVolumeSchema?

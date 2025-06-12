@@ -8,4 +8,6 @@ export interface PolygonToolState {
   guideEntity?: Cesium.Entity;
   isDrawingBase: boolean;
   isActive: boolean;
+  // TODO: Change to a selectiontool if needed
+  isSelecting: boolean;
 }

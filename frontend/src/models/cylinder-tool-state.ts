@@ -7,4 +7,6 @@ export interface CylinderToolState {
   draftEntity?: Cesium.Entity;
   guideEntity?: Cesium.Entity;
   isActive: boolean;
+  // TODO: Change to a selectiontool if needed
+  isSelecting: boolean;
 }

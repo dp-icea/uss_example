@@ -75,7 +75,10 @@ module.exports = (env) => {
 				"process.env.ENVIRONMENT": JSON.stringify("development"),
 			}),
 			new Dotenv({
-				path: env.environment === 'prod' ? path.resolve(__dirname, ".env.prod") : path.resolve(__dirname, ".env.dev"),
+				path:
+					env.environment === "prod"
+						? path.resolve(__dirname, ".env.prod")
+						: path.resolve(__dirname, ".env.dev"),
 				safe: true,
 			}),
 		],

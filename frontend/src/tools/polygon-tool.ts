@@ -34,6 +34,7 @@ export class PolygonTool {
       addedRegions: [],
       isDrawingBase: false,
       isActive: false,
+      isSelecting: false,
     };
 
     this.setupEventHandlers();
@@ -82,22 +83,43 @@ export class PolygonTool {
     }
   }
 
+  private createEntityDescription(model: PolygonVolumeModel): Cesium.Property {
+    let description =
+      `<table class="cesium-infoBox-defaultTable"><tbody>` +
+      `<tr><th>Number Of Base Points</th><td>${model.base.length}</td></tr>` +
+      `<tr><th>Height</th><td>${model.height}</td></tr>` +
+      `<tr><th>State</th><td>${model.state}</td></tr>`;
+
+    if (model.confirmedVolume) {
+      description +=
+        `<tr><th>Altitude Lower</th><td>${model.confirmedVolume.volume.altitude_lower.value}</td></tr>` +
+        `<tr><th>Altitude Upper</th><td>${model.confirmedVolume.volume.altitude_upper.value}</td></tr>` +
+        `<tr><th>Time Start</th><td>${model.confirmedVolume.time_start.value}</td></tr>` +
+        `<tr><th>Time End</th><td>${model.confirmedVolume.time_end.value}</td></tr>`;
+    }
+
+    description += `</tbody></table>`;
+
+    return description as unknown as Cesium.Property;
+  }
+
   private handleSelectEntity(
     event: Cesium.ScreenSpaceEventHandler.PositionedEvent,
   ): void {
-    const pickedObject = this.viewer.scene.pick(event.position);
+    if (!this.state.isSelecting) return;
 
-    console.log(pickedObject);
+    const pickedObject = this.viewer.scene.pick(event.position);
 
     if (!Cesium.defined(pickedObject) || !pickedObject.id) {
       return;
     }
 
-    console.log("Hey");
+    const pickedEntity = pickedObject.id as Cesium.Entity;
 
     this.state.addedRegions.forEach((model) => {
-      if (model.entity && model.entity.id === pickedObject.id) {
-        console.log(model);
+      if (model.entity && model.entity.id === pickedEntity.id) {
+        model.entity.description = this.createEntityDescription(model);
+        console.log("Selected model:", model);
       }
     });
   }
@@ -203,6 +225,7 @@ export class PolygonTool {
     }
 
     console.log(this.state.draftModel.base);
+
     this.state.draftEntity = this.viewer.entities.add({
       polygon: {
         hierarchy: new Cesium.PolygonHierarchy(
@@ -448,9 +471,11 @@ export class PolygonTool {
     };
 
     try {
-      await this.apiService.submitFlightPlan(payload);
+      const confirmedResponse = await this.apiService.submitFlightPlan(payload);
       // TODO: Make the polygon green
       model.state = PolygonVolumeState.ACCEPTED;
+      model.confirmedVolume = confirmedResponse.data.details
+        .volumes[0] as PolygonVolumeSchema;
 
       this.drawModel(model);
     } catch (error: any) {
@@ -500,7 +525,22 @@ export class PolygonTool {
     });
   }
 
-  public drawConflictRegion(region: PolygonVolumeSchema): void {
+  cleanRequestedRegions(): void {
+    // Remove all regions that are in REQUESTED state
+    this.state.addedRegions.forEach((model) => {
+      if (model.state === PolygonVolumeState.REQUESTED) {
+        if (model.entity) {
+          this.viewer.entities.remove(model.entity);
+        }
+      }
+    });
+
+    this.state.addedRegions = this.state.addedRegions.filter(
+      (model) => model.state !== PolygonVolumeState.REQUESTED,
+    );
+  }
+
+  drawConflictRegion(region: PolygonVolumeSchema): void {
     const minHeight = region.volume.altitude_lower.value;
     const maxHeight = region.volume.altitude_upper.value;
 
@@ -508,7 +548,14 @@ export class PolygonTool {
       (vertex) => new Cesium.Cartographic(vertex.lng, vertex.lat, minHeight),
     );
 
-    const polygonEntity = this.viewer.entities.add({
+    const model: PolygonVolumeModel = {
+      base: vertices,
+      height: maxHeight - minHeight,
+      state: PolygonVolumeState.REQUESTED,
+      confirmedVolume: region,
+    };
+
+    model.entity = this.viewer.entities.add({
       polygon: {
         hierarchy: new Cesium.PolygonHierarchy(
           vertices.map((vertex) => Cesium.Cartographic.toCartesian(vertex)),
@@ -521,12 +568,15 @@ export class PolygonTool {
       },
     });
 
-    this.state.addedRegions.push({
-      base: vertices,
-      height: maxHeight - minHeight,
-      entity: polygonEntity,
-      state: PolygonVolumeState.REQUESTED,
-    });
+    this.state.addedRegions.push(model);
+  }
+
+  activateSelecting(): void {
+    this.state.isSelecting = true;
+  }
+
+  deactivateSelecting(): void {
+    this.state.isSelecting = false;
   }
 
   activate(): void {
