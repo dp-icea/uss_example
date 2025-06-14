@@ -1,38 +1,8 @@
-version: "3.8"
-
 services:
-  api:
-    build: ./backend
-    ports:
-      - "8001:8000"
-    environment:
-      - ENV=prod
-    depends_on:
-      - mongodb
-    networks:
-      - app-network
-    deploy:
-      replicas: 2
-      restart_policy:
-        condition: on-failure
-
-  frontend:
-    build: ./frontend
-    ports:
-      - "80:80"
-    depends_on:
-      - api
-    networks:
-      - app-network
-    deploy:
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-
   mongodb:
     image: bitnami/mongodb:latest
-    ports:
-      - "27018:27017"
+    environment:
+      - MONGODB_ROOT_PASSWORD=your-secure-password
     volumes:
       - mongodb_data:/bitnami/mongodb
     networks:
@@ -40,15 +10,31 @@ services:
     deploy:
       replicas: 1
       restart_policy:
-        condition: on-failure
-      placement:
-        constraints:
-          - node.role == manager
+        condition: on-failure 
+
+  dss-migration-rid:
+    image: 172.18.31.16:5000/dev/dss-core-service:latest
+    restart: on-failure
+    logging:
+      driver: fluentd
+      options:
+        tag: dss-rid-migration
+    command: /usr/bin/db-manager migrate --schemas_dir=/db-schemas/rid --db_version "latest" --cockroach_host ${COCKROACH_HOST} --cockroach_port ${COCKROACH_PORT}
+    networks:
+      - dss_db
+  
+  dss-migration-scd:
+    image: 172.18.31.16:5000/dev/dss-core-service:latest
+    restart: on-failure
+    logging:
+      driver: fluentd
+      options:
+        tag: dss-scd-migration
+    command: /usr/bin/db-manager migrate --schemas_dir=/db-schemas/scd --db_version "latest" --cockroach_host ${COCKROACH_HOST} --cockroach_port ${COCKROACH_PORT}
+    networks:
+      - dss_db
+    
 
 networks:
   app-network:
-    driver: overlay
-
-volumes:
-  mongodb_data:
-    driver: local
+    external: true
