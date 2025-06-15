@@ -3,8 +3,6 @@ services:
     image: bitnami/mongodb:latest
     volumes:
       - mongodb_data:/bitnami/mongodb
-    networks:
-      - app-network
     ports:
       - "27017:27017"
     restart: on-failure
@@ -25,9 +23,5 @@ services:
     depends_on:
       - api
   
-networks:
-  app-network:
-    external: true
-
 volumes:
   mongodb_data:
