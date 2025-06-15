@@ -8,9 +8,11 @@ services:
     expose:
       - "27017"
     restart: on-failure
+    deploy:
+      replicas: 1
 
   api:
-    image: 34.9.130.218:5000/dev/uss-api:latest
+    image: 35.224.119.143:5000/dev/uss-api:latest
     ports:
       - "8000:8000"
     expose:
@@ -20,9 +22,11 @@ services:
     depends_on:
       - mongodb
     restart: on-failure
+    deploy:
+      replicas: 1
     
   interface:
-    image: 34.9.130.218:5000/dev/uss-viewer:latest
+    image: 35.224.119.143:5000/dev/uss-viewer:latest
     ports:
       - "80:80"
     expose:
@@ -30,6 +34,8 @@ services:
     depends_on:
       - api
     restart: on-failure
+    deploy:
+      replicas: 1
   
 volumes:
   mongodb_data:
