@@ -39,8 +39,8 @@ jobs:
         uses: cssnr/portainer-stack-deploy-action@v1
         with:
           token: ${{ secrets.PORTAINER_TOKEN }}
-          url: ${{ envs.PORTAINER_URL }}
-          name: ${{ envs.PORTAINER_STACK }}
+          url: ${{ vars.PORTAINER_URL }}
+          name: ${{ vars.PORTAINER_STACK }}
           # Make the repository  public to see avoid using this
           # username: ${{ github.actor }}
           # password: ${{ secrets.GITHUB_TOKEN }}
