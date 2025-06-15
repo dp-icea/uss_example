@@ -19,6 +19,7 @@ services:
       ENV: "prod"
     depends_on:
       - mongodb
+    restart: on-failure
     
   interface:
     image: 34.9.130.218:5000/dev/uss-viewer:latest
@@ -28,6 +29,7 @@ services:
       - "80"
     depends_on:
       - api
+    restart: on-failure
   
 volumes:
   mongodb_data:
