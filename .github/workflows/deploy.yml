@@ -31,3 +31,20 @@ jobs:
           push: true
           tags: localhost:5000/dev/uss-viewer:latest
 
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: 'Portainer Deploy'
+        uses: cssnr/portainer-stack-deploy-action@v1
+        with:
+          token: ${{ secrets.PORTAINER_TOKEN }}
+          url: ${{ envs.PORTAINER_URL }}
+          name: ${{ envs.PORTAINER_STACK }}
+          # Make the repository  public to see avoid using this
+          # username: ${{ github.actor }}
+          # password: ${{ secrets.GITHUB_TOKEN }}
+          # Dont need it yet
+          # env_file: .env
+          file: docker-compose.yml
+
