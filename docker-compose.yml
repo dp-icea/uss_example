@@ -1,8 +1,11 @@
 services:
   mongodb:
-    image: bitnami/mongodb:latest
+    image: mongo:latest
     volumes:
-      - mongodb_data:/bitnami/mongodb
+      - data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
     ports:
       - "27017:27017"
     expose:
@@ -38,4 +41,4 @@ services:
       replicas: 1
   
 volumes:
-  mongodb_data:
+  data:
