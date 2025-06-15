@@ -29,6 +29,7 @@ app = FastAPI(
 origins = [
     "http://localhost",
     "http://localhost:9000",
+    "http://34.9.130.218/",
 ]
 
 @app.middleware("http")
