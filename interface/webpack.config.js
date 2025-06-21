@@ -76,7 +76,7 @@ module.exports = (env) => {
 			}),
 			new Dotenv({
 				path:
-					env.environment === "prod"
+					env.ENV === "prod"
 						? path.resolve(__dirname, ".env.prod")
 						: path.resolve(__dirname, ".env.dev"),
 				safe: true,

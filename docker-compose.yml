@@ -1,16 +1,4 @@
 services:
-  mongodb:
-    image: mongo:latest
-    volumes:
-      - data:/data/db
-    ports:
-      - "27017:27017"
-    expose:
-      - "27017"
-    restart: on-failure
-    deploy:
-      replicas: 1
-
   api:
     image: 35.224.119.143:5000/dev/uss-api:latest
     ports:
@@ -19,8 +7,6 @@ services:
       - "8000"
     environment:
       ENV: "prod"
-    depends_on:
-      - mongodb
     restart: on-failure
     deploy:
       replicas: 1

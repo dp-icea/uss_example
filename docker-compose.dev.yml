@@ -1,0 +1,32 @@
+version: "3"
+
+services:
+  mongodb:
+    image: bitnami/mongodb:latest
+    ports:
+      - "27017"
+    networks:
+      - default
+    volumes:
+      - data:/data/db
+
+  api:
+    build: ./api
+    ports:
+      - "8000:8000"
+    environment:
+      - ENV=dev
+    depends_on:
+      - mongodb
+    
+  interface:
+    build: ./interface
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+    environment:
+      - ENV=dev
+  
+volumes:
+  data:

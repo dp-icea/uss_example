@@ -18,9 +18,7 @@ export interface QueryConflictsResponse {
 
 export class USSService {
   private baseUrl: string;
-
-  //constructor(baseUrl: string = "http://localhost:8000") {
-  constructor(baseUrl: string = "http://34.9.130.218:8000") {
+  constructor(baseUrl: string = process.env.API_URL) {
     this.baseUrl = baseUrl;
   }
 
