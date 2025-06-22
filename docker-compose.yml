@@ -1,6 +1,6 @@
 services:
   api:
-    image: ${RUNNER_ADDRESS}/dev/uss-api:latest
+    image: 34.29.199.83:5000/dev/uss-api:latest
     ports:
       - "8000:8000"
     environment:
@@ -10,7 +10,7 @@ services:
       replicas: 1
     
   interface:
-    image: ${RUNNER_ADDRESS}/dev/uss-viewer:latest
+    image: 34.29.199.83:5000/dev/uss-viewer:latest
     ports:
       - "80:80"
     depends_on:
