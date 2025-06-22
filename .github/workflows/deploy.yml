@@ -42,4 +42,5 @@ jobs:
           token: ${{ secrets.PORTAINER_TOKEN }}
           url: ${{ vars.PORTAINER_URL }}
           name: ${{ vars.PORTAINER_STACK }}
-          env_json: '{"RUNNER_ADDRESS": "${{ vars.RUNNER_ADDRESS }}", "AUTH_KEY": "${{ secrets.DSS_AUTH_KEY }}" }'
+          env_json: '{"RUNNER_ADDRESS": "${{ vars.RUNNER_ADDRESS }}", "AUTH_KEY": "${{ secrets.DSS_AUTH_KEY }}", "ION_KEY": "${{secrets.ION_KEY}}" }'
+

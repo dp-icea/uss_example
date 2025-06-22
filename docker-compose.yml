@@ -17,6 +17,9 @@ services:
       - "80:80"
     depends_on:
       - api
+    environment:
+      ENV: "prod"
+      ION_KEY: "${ION_KEY}"
     deploy:
       replicas: 1
       restart_policy:
