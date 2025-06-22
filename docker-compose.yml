@@ -6,9 +6,10 @@ services:
     environment:
       ENV: "prod"
       AUTH_KEY: "${AUTH_KEY}"
-    restart: on-failure
     deploy:
       replicas: 1
+      restart_policy:
+        condition: on-failure
     
   interface:
     image: "${RUNNER_ADDRESS}/dev/uss-viewer:latest"
@@ -16,9 +17,10 @@ services:
       - "80:80"
     depends_on:
       - api
-    restart: on-failure
     deploy:
       replicas: 1
+      restart_policy:
+        condition: on-failure
   
 volumes:
   data:
