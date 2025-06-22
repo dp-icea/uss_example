@@ -38,6 +38,8 @@ jobs:
     steps:
       - name: 'Portainer Deploy'
         uses: cssnr/portainer-stack-deploy-action@v1
+        environments:
+          RUNNER_ADDRESS: ${{ vars.RUNNER_ADDRESS }}
         with:
           token: ${{ secrets.PORTAINER_TOKEN }}
           url: ${{ vars.PORTAINER_URL }}
