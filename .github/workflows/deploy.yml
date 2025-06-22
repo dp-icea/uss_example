@@ -44,10 +44,4 @@ jobs:
           token: ${{ secrets.PORTAINER_TOKEN }}
           url: ${{ vars.PORTAINER_URL }}
           name: ${{ vars.PORTAINER_STACK }}
-          # Make the repository  public to see avoid using this
-          # username: ${{ github.actor }}
-          # password: ${{ secrets.GITHUB_TOKEN }}
-          # Dont need it yet
-          # env_file: .env
-          file: docker-compose.yml
 

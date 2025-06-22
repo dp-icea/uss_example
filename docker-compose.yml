@@ -3,8 +3,6 @@ services:
     image: ${RUNNER_ADDRESS}/dev/uss-api:latest
     ports:
       - "8000:8000"
-    expose:
-      - "8000"
     environment:
       ENV: "prod"
     restart: on-failure
@@ -15,8 +13,6 @@ services:
     image: ${RUNNER_ADDRESS}/dev/uss-viewer:latest
     ports:
       - "80:80"
-    expose:
-      - "80"
     depends_on:
       - api
     restart: on-failure
