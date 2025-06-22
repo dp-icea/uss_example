@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
@@ -36,13 +36,10 @@ jobs:
     needs: build
 
     steps:
-      - name: 'Portainer Deploy'
+      - name: "Portainer Deploy"
         uses: cssnr/portainer-stack-deploy-action@v1
-        env:
-          RUNNER_ADDRESS: ${{ vars.RUNNER_ADDRESS }}
-          AUTH_KEY: ${{ secrets.DSS_AUTH_KEY }}
         with:
           token: ${{ secrets.PORTAINER_TOKEN }}
           url: ${{ vars.PORTAINER_URL }}
           name: ${{ vars.PORTAINER_STACK }}
-
+          env_json: '{"RUNNER_ADDRESS": "${{ vars.RUNNER_ADDRESS }}", "AUTH_KEY": "${{ secrets.DSS_AUTH_KEY }}" }'
