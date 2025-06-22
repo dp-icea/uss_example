@@ -64,7 +64,7 @@ class AuthCheck(HTTPBearer):
             raise HTTPException(
                 status_code=HTTPStatus.UNAUTHORIZED,
                 detail=ResponseError(
-                    message=f"Invalid token: {credentials.credentials}",
+                    message=f"Invalid token: {str(credentials.credentials)}",
                     data=None,
                 ).model_dump(mode="json"),
             )
