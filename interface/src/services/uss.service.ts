@@ -25,7 +25,7 @@ export class USSService {
     );
 
     if (!baseUrl) {
-      this.baseUrl = "http://api.dev.br-utm.org/uss-kit";
+      this.baseUrl = "https://api.dev.br-utm.org/uss-kit";
     } else {
       this.baseUrl = baseUrl;
     }
