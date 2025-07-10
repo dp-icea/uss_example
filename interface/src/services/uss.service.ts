@@ -19,6 +19,8 @@ export interface QueryConflictsResponse {
 export class USSService {
   private baseUrl: string;
   constructor(baseUrl: string = process.env.API_URL) {
+    console.log("USSService initialized with base URL:", baseUrl);
+
     this.baseUrl = baseUrl;
   }
 
