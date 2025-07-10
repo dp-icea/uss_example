@@ -19,9 +19,16 @@ export interface QueryConflictsResponse {
 export class USSService {
   private baseUrl: string;
   constructor(baseUrl: string = process.env.API_URL) {
-    console.log("USSService initialized with base URL:", baseUrl);
+    console.log(
+      "USSService initialized with base URL env variable:",
+      process.env.API_URL,
+    );
 
-    this.baseUrl = baseUrl;
+    if (!baseUrl) {
+      this.baseUrl = "http://api.dev.br-utm.org/uss-kit";
+    } else {
+      this.baseUrl = baseUrl;
+    }
   }
 
   async submitFlightPlan(
