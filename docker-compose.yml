@@ -10,7 +10,7 @@ services:
       replicas: 1
       restart_policy:
         condition: on-failure
-    
+
   interface:
     image: "${RUNNER_ADDRESS}/dev/uss-viewer:latest"
     ports:
@@ -24,6 +24,6 @@ services:
       replicas: 1
       restart_policy:
         condition: on-failure
-  
-volumes:
-  data:
+
+  volumes:
+    data:
