@@ -8,7 +8,7 @@ O desenvolvimento surgiu da necessidade de demonstrar a provedores de maneiras p
 
 O Visualizador interage diretamente com a API para efetivar os planos de voo, e que por sua vez possui um banco de dados próprio para armazenar os voos reservados e prover informação para outros USSs que possam precisar dela.
 
-Acesse uma instancia do Visualizador em: [[link](interface.dev.br-utm.org)](https://interface.dev.br-utm.org/)
+Acesse uma instancia do Visualizador em: [interface.dev.br-utm.org](https://interface.dev.br-utm.org/)
 
 O repositório para acesso do código está disponível em: [Github](https://github.com/dp-icea/uss-kit-poc)
 
