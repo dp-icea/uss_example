@@ -49,10 +49,11 @@ from schemas.operational_intent_reference import (
     OperationalIntentReferenceUpdateResponse
 )
 
+
 class DSSService:
     def __init__(self):
         settings = Settings()
-        
+
         assert settings.DSS_URL, "DSS_URL must be set in the environment variables."
         assert settings.DOMAIN, "DOMAIN must be set in the environment variables."
         assert settings.MANAGER, "MANAGER must be set in the environment variables."
@@ -61,13 +62,14 @@ class DSSService:
         self._app_domain: str = settings.DOMAIN
         self._manager: str = settings.MANAGER
 
-        self._client = AuthAsyncClient(base_url=self._base_url, aud=Audition.DSS.value)
+        self._client = AuthAsyncClient(
+            base_url=self._base_url, aud=Audition.DSS.value)
 
     async def close(self):
         await self._client.aclose()
 
     async def query_constraint_references(self, area_of_interest: AreaOfInterestSchema) -> ConstraintReferenceQueryResponse:
-            
+
         """
         Query all constraint references from the DSS.
         """
@@ -98,7 +100,7 @@ class DSSService:
         Query all operational intents from the DSS.
         """
         body = OperationalIntentReferenceQueryRequest(
-                area_of_interest=area_of_interest,
+            area_of_interest=area_of_interest,
         )
 
         response = await self._client.request(
@@ -119,7 +121,7 @@ class DSSService:
 
         return OperationalIntentReferenceQueryResponse.model_validate(response.json())
 
-    async def create_operational_intent(self, entity_id: UUID, area_of_interest: AreaOfInterestSchema, keys: List[str]=[]) -> OperationalIntentReferenceCreateResponse:
+    async def create_operational_intent(self, entity_id: UUID, area_of_interest: AreaOfInterestSchema, keys: List[str] = []) -> OperationalIntentReferenceCreateResponse:
         """
         Create a new operational intent in the DSS.
         """
@@ -197,10 +199,9 @@ class DSSService:
                 ).model_dump(mode="json"),
             )
 
-        
         return OperationalIntentReferenceDeleteResponse.model_validate(response.json())
 
-    async def update_operational_intent_reference(self, entity_id: UUID, ovn: str, keys:List[ovn], operational_intent: OperationalIntentSchema) -> OperationalIntentReferenceUpdateResponse:
+    async def update_operational_intent_reference(self, entity_id: UUID, ovn: str, keys: List[ovn], operational_intent: OperationalIntentSchema) -> OperationalIntentReferenceUpdateResponse:
         """
         Update the operational intent reference state in the DSS.
         """
@@ -217,10 +218,15 @@ class DSSService:
             flight_type=operational_intent.reference.flight_type,
         )
 
+        scope = Scope.STRATEGIC_COORDINATION
+
+        if (operational_intent.reference.state == OperationalIntentState.NONCONFORMING):
+            scope = Scope.CONFORMANCE_MONITORING_SA
+
         response = await self._client.request(
             "put",
             f"/operational_intent_references/{entity_id}/{ovn}",
-            scope=Scope.STRATEGIC_COORDINATION,
+            scope=scope,
             json=body.model_dump(mode="json"),
         )
 
@@ -340,7 +346,7 @@ class DSSService:
             )
 
         return SubscriptionCreateResponse.model_validate(response.json())
-    
+
     async def get_subscription(self, subscription_id: UUID) -> SubscriptionGetResponse:
         """
         Get the subscription details from the DSS.
@@ -415,4 +421,3 @@ class DSSService:
             )
 
         return ReportResponse.model_validate(response.json())
-
