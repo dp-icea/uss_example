@@ -25,7 +25,7 @@ export class USSService {
     );
 
     if (!baseUrl) {
-      this.baseUrl = "https://api.dev.br-utm.org/uss-kit";
+      this.baseUrl = "https://api.sandbox.br-utm.org/uss-kit";
     } else {
       this.baseUrl = baseUrl;
     }
